@@ -1,0 +1,199 @@
+version: 2
+
+models:
+  # ─────────────────────────────────────────────────────────────
+  # DIMENSION TABLES
+  # ─────────────────────────────────────────────────────────────
+
+  - name: dim_date
+    description: "Date dimension"
+    columns:
+      - name: date_id
+        description: "Surrogate key in YYYYMMDD integer format"
+        tests:
+          - unique
+          - not_null
+
+      - name: full_date
+        tests:
+          - not_null
+
+      - name: year
+        tests:
+          - not_null
+
+  - name: dim_location
+    description: "Location dimension sourced from ip2location table."
+    columns:
+      - name: location_id
+        description: "Natural key — IP address string"
+        tests:
+          - unique
+          - not_null
+
+      - name: country_long
+        description: "Full country name"
+
+      - name: region_name
+        description: "Region / state"
+
+      - name: city_name
+        description: "City"
+
+  - name: dim_store
+    description: "Store dimension from distinct store IDs in events."
+    columns:
+      - name: store_id
+        description: "Store surrogate key (INT64)"
+        tests:
+          - unique
+          - not_null
+
+  - name: dim_customer
+    description: "Customer dimension — latest record per customer ID."
+    columns:
+      - name: customer_id
+        description: "Natural key — user_id_db from summary"
+        tests:
+          - unique
+          - not_null
+
+      - name: email_address
+        description: "Customer email"
+
+      - name: device_id
+        description: "Device identifier"
+
+  - name: dim_product
+    description: "Product dimension sourced from product_info."
+    columns:
+      - name: product_id
+        description: "Natural key — product_id string"
+        tests:
+          - unique
+          - not_null
+
+      - name: product_name
+        tests:
+          - not_null
+
+      - name: sku
+
+  - name: dim_colour
+    description: "Colour dimension from flattened colour options."
+    columns:
+      - name: colour_id
+        description: "Colour option ID (option_id)"
+        tests:
+          - unique
+          - not_null
+
+      - name: colour_name
+
+  - name: dim_metal
+    description: "Metal dimension — sub-attribute of colour options."
+    columns:
+      - name: metal_id
+        description: "Metal ID extracted from colour option"
+        tests:
+          - unique
+          - not_null
+
+      - name: metal_name
+
+  - name: dim_stone
+    description: "Stone dimension from flattened stone options."
+    columns:
+      - name: stone_id
+        description: "Stone option_type_id (PK)"
+        tests:
+          - unique
+          - not_null
+
+      - name: option_id
+      - name: sku
+      - name: stone_type_default_label
+      - name: total_carat_default_label
+      - name: clarity_default_label
+      - name: cut_default_label
+      - name: color_default_label
+
+  # ─────────────────────────────────────────────────────────────
+  # FACT TABLE
+  # ─────────────────────────────────────────────────────────────
+
+  - name: fact_sales_order
+    description: >
+      Transactional fact table. Grain: one row per product line
+      in a successful checkout order.
+    columns:
+      - name: sale_id
+        description: "Surrogate PK: order_id + '-' + product_id"
+        tests:
+          - unique
+          - not_null
+
+      - name: order_id
+        tests:
+          - not_null
+
+      - name: date_id
+        description: "FK → dim_date.date_id"
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_date')
+              field: date_id
+
+      - name: location_id
+        description: "FK → dim_location.location_id (IP address)"
+        tests:
+          - relationships:
+              to: ref('dim_location')
+              field: location_id
+
+      - name: store_id
+        description: "FK → dim_store.store_id"
+        tests:
+          - relationships:
+              to: ref('dim_store')
+              field: store_id
+
+      - name: product_id
+        description: "FK → dim_product.product_id"
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_product')
+              field: product_id
+
+      - name: stone_id
+        description: "FK → dim_stone.stone_id"
+        tests:
+          - relationships:
+              to: ref('dim_stone')
+              field: stone_id
+
+      - name: colour_id
+        description: "FK → dim_colour.colour_id"
+        tests:
+          - relationships:
+              to: ref('dim_colour')
+              field: colour_id
+
+      - name: metal_id
+        description: "FK → dim_metal.metal_id"
+        tests:
+          - relationships:
+              to: ref('dim_metal')
+              field: metal_id
+
+      - name: user_id_db
+        description: "FK → dim_customer.customer_id"
+        tests:
+          - relationships:
+              to: ref('dim_customer')
+              field: customer_id
+
+      - name: amount
+        description: "Sale amount (cast to INT64)"

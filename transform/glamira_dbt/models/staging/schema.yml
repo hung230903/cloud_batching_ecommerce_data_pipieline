@@ -1,0 +1,36 @@
+version: 2
+
+models:
+  - name: stg_glamira__summary
+    description: "Cleaned and typed event log from the raw summary table."
+    columns:
+      - name: order_id
+        description: "Order ID (only populated for checkout_success events)"
+      - name: product_id
+        description: "Product involved in the event"
+      - name: customer_id
+        description: "Logged-in user ID"
+      - name: event_timestamp
+        description: "Event timestamp cast to TIMESTAMP"
+      - name: ip_address
+        description: "User IP address"
+      - name: collection
+        description: "Event type"
+        tests:
+          - not_null
+
+  - name: stg_glamira__product
+    description: "Cleaned product catalogue with nested stone and colour arrays."
+    columns:
+      - name: product_id
+        description: "Unique product identifier"
+        tests:
+          - not_null
+
+  - name: stg_glamira__ip2location
+    description: "Cleaned IP-to-location mapping."
+    columns:
+      - name: ip_address
+        description: "IP address"
+        tests:
+          - not_null
