@@ -2,7 +2,8 @@ import logging
 from logging.handlers import RotatingFileHandler
 import os
 
-LOG_DIR = "./logs"
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+LOG_DIR = os.path.join(BASE_DIR, "logs")
 LOG_FILE = None
 LOG_LEVEL = logging.INFO
 LOG_MAX_BYTES = 5_000_000

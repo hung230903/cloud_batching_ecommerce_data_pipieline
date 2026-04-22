@@ -7,6 +7,7 @@ import pyarrow.parquet as pq
 
 logger = logging.getLogger(__name__)
 
+
 def convert_json_to_parquet(json_file_path, transform_func=None, schema=None):
     """JSON -> Parquet."""
     try:
@@ -14,7 +15,7 @@ def convert_json_to_parquet(json_file_path, transform_func=None, schema=None):
         df = pd.read_json(json_file_path)
         if transform_func:
             df = transform_func(df)
-            
+
         parquet_buffer = io.BytesIO()
         df.to_parquet(parquet_buffer, engine='pyarrow', index=False, schema=schema)
         parquet_buffer.seek(0)
@@ -22,6 +23,7 @@ def convert_json_to_parquet(json_file_path, transform_func=None, schema=None):
     except Exception as e:
         logger.error(f"Error: {e}")
         return None
+
 
 def convert_bson_to_parquet(bson_file_path, batch_size=50000, transform_func=None, schema=None):
     """BSON -> Parquet with detailed progress logging."""
@@ -48,7 +50,7 @@ def convert_bson_to_parquet(bson_file_path, batch_size=50000, transform_func=Non
                     df_batch = pd.DataFrame(current_batch)
                     if transform_func:
                         df_batch = transform_func(df_batch)
-                    
+
                     if schema:
                         for name in schema.names:
                             if name not in df_batch.columns:
@@ -61,7 +63,7 @@ def convert_bson_to_parquet(bson_file_path, batch_size=50000, transform_func=Non
                     table = pa.Table.from_pandas(df_batch, schema=schema)
                     if writer is None:
                         writer = pq.ParquetWriter(parquet_buffer, schema if schema else table.schema)
-                    
+
                     writer.write_table(table)
                     current_batch = []
 
@@ -78,7 +80,7 @@ def convert_bson_to_parquet(bson_file_path, batch_size=50000, transform_func=Non
                             else:
                                 df_batch[name] = None
                     df_batch = df_batch[schema.names]
-                
+
                 table = pa.Table.from_pandas(df_batch, schema=schema)
                 if writer is None:
                     writer = pq.ParquetWriter(parquet_buffer, schema if schema else table.schema)
