@@ -28,6 +28,7 @@ The pipeline is organized into modular stages executed sequentially to transform
 | **Stage 3: Product Crawler** | Asynchronously crawls detailed product info (name, price, SKU, options) from Glamira.  |
 | **Stage 4: Storage Sync**    | Synchronizes processed data to Google Cloud Storage (GCS) in Optimized Parquet format. |
 | **Stage 5: BigQuery Load**   | Orchestrates the ingestion of Parquet files from GCS into BigQuery raw tables.         |
+| **Stage 6: dbt Transform**   | Executes SQL transformations using dbt to build the analytical Star Schema.            |
 
 ---
 
