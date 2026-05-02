@@ -1,6 +1,8 @@
 import os
 import io
 import sys
+import json
+import glob
 from datetime import datetime
 
 import pandas as pd
@@ -18,6 +20,7 @@ from config.base import (
     SUMMARY_COLLECTION,
     IP_COLLECTION,
     MONGO_BATCH_SIZE,
+    IP2LOCATION_DIR,
 )
 from config.logger import setup_logger
 from processing.summary_transformer import (
@@ -167,15 +170,60 @@ def _write_batch_to_gcs(batch, collection_name, gcs_folder, part_idx, transform_
     upload_buffer_to_gcs(parquet_buffer, GCS_BUCKET_NAME, destination)
 
 
-def export_to_gcs():
-    """Luồng chính: Đọc dữ liệu từ MongoDB, chuyển sang Parquet và upload lên GCS."""
+def export_ip2location_from_json():
+    """Đọc dữ liệu IP2Location từ các file JSON và upload lên GCS."""
+    pattern = os.path.join(IP2LOCATION_DIR, "ip_location_batch_*.json")
+    json_files = sorted(glob.glob(pattern))
+    
+    if not json_files:
+        logger.warning(f"No IP2Location JSON files found in {IP2LOCATION_DIR}.")
+        return
 
+    schema = get_ip2location_pyarrow_schema()
+    
+    for i, file_path in enumerate(json_files, 1):
+        filename = os.path.basename(file_path)
+        logger.info(f"[ip2location] Processing file {i}/{len(json_files)}: {filename}")
+        
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                
+            if not data:
+                continue
+                
+            df = pd.DataFrame(data)
+            if transform_ip2location_data:
+                df = transform_ip2location_data(df)
+            df = _ensure_schema_columns(df, schema)
+            
+            table = pa.Table.from_pandas(df, schema=schema)
+            parquet_buffer = io.BytesIO()
+            pq.write_table(table, parquet_buffer)
+            parquet_buffer.seek(0)
+            
+            # Đổi tên file từ .json sang .parquet
+            parquet_name = filename.replace(".json", ".parquet")
+            destination = f"{GCS_IP2LOCATION_FOLDER}/{parquet_name}"
+            
+            upload_buffer_to_gcs(parquet_buffer, GCS_BUCKET_NAME, destination)
+            
+        except Exception as e:
+            logger.error(f"[ip2location] Failed to process {filename}: {e}")
+
+def export_to_gcs():
+    """Luồng chính: Export toàn bộ dữ liệu (Product, Summary, IP2Location) lên GCS."""
+
+    # 1. Export PRODUCT INFO (từ JSON files)
+    from loaders.load_product_info_to_gcs import run_load_product_to_gcs
+    logger.info("=== [1/3] Exporting PRODUCT INFO (JSON → GCS) ===")
+    run_load_product_to_gcs()
+
+    # 2. Export SUMMARY (MongoDB → GCS)
+    logger.info("=== [2/3] Exporting SUMMARY collection ===")
     client = MongoClient(MONGO_URI)
     db = client[MONGO_DB]
-
     try:
-        # 1. Export SUMMARY
-        logger.info("=== [1/2] Exporting SUMMARY collection ===")
         summary_col = db[SUMMARY_COLLECTION]
         summary_schema = get_summary_pyarrow_schema()
         export_collection_to_gcs(
@@ -185,21 +233,13 @@ def export_to_gcs():
             transform_func=transform_summary_data,
             schema=summary_schema,
         )
-
-        # 2. Export IP2LOCATION
-        logger.info("=== [2/2] Exporting IP2LOCATION collection ===")
-        ip2location_col = db[IP_COLLECTION]
-        ip2location_schema = get_ip2location_pyarrow_schema()
-        export_collection_to_gcs(
-            collection=ip2location_col,
-            collection_name="ip2location",
-            gcs_folder=GCS_IP2LOCATION_FOLDER,
-            transform_func=transform_ip2location_data,
-            schema=ip2location_schema,
-        )
     finally:
         client.close()
         logger.info("MongoDB connection closed.")
+
+    # 3. Export IP2LOCATION (Từ JSON files)
+    # logger.info("=== [3/3] Exporting IP2LOCATION (JSON → GCS) ===")
+    # export_ip2location_from_json()
 
 
 if __name__ == "__main__":
