@@ -47,19 +47,19 @@ def main():
     
     try:
         # 1. Làm giàu dữ liệu IP
-        # step_ip_to_location()
+        step_ip_to_location()
         
         # 2. Lọc PID
         # step_pid_filter()
         
         # 3. Crawl dữ liệu sản phẩm mới
-        # step_product_crawler()
+        step_product_crawler()
         
         # 3.5 Load Product Info to GCS (JSON -> Parquet)
-        # step_product_info_to_gcs()
+        step_product_info_to_gcs()
         
         # 4. Export dữ liệu sang GCS
-        # step_export_to_gcs()
+        step_export_to_gcs()
         
         # 5. Nạp vào BigQuery
         step_bigquery_load()

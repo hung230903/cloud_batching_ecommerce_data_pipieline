@@ -1,6 +1,8 @@
 # 💎 Glamira Data Engineering Project - E-commerce Analytics
 
-An end-to-end data engineering pipeline built with **Python**, **dbt**, and **Google Cloud Platform (GCP)** to collect, process, and analyze data from the Glamira e-commerce platform. The project implements a modern data stack with a Medallion Architecture in BigQuery.
+An end-to-end data engineering pipeline built with **Python**, **dbt**, and **Google Cloud Platform (GCP)** to collect,
+process, and analyze data from the Glamira e-commerce platform. The project implements a modern data stack with a
+Medallion Architecture in BigQuery.
 
 ---
 
@@ -22,7 +24,7 @@ An end-to-end data engineering pipeline built with **Python**, **dbt**, and **Go
 The pipeline is organized into modular stages executed sequentially to transform raw web data into analytical insights.
 
 | Stage                        | Description                                                                            |
-| :--------------------------- | :------------------------------------------------------------------------------------- |
+|:-----------------------------|:---------------------------------------------------------------------------------------|
 | **Stage 1: IP to Location**  | Converts raw user IP addresses into geographic data using IP2Location LITE DB.         |
 | **Stage 2: PID Filter**      | Filters and identifies new Product IDs (PIDs) for crawling from summary logs.          |
 | **Stage 3: Product Crawler** | Asynchronously crawls detailed product info (name, price, SKU, options) from Glamira.  |
@@ -35,7 +37,7 @@ The pipeline is organized into modular stages executed sequentially to transform
 ## 🛠 Tech Stack
 
 | Category                   | Technology                          |
-| :------------------------- | :---------------------------------- |
+|:---------------------------|:------------------------------------|
 | **Language**               | Python 3.13+                        |
 | **Data Orchestration**     | Custom Python Runner (`main.py`)    |
 | **Database (Raw/Staging)** | MongoDB, Google Cloud Storage (GCS) |
@@ -112,9 +114,9 @@ The transformation layer builds a robust Star Schema within BigQuery:
 
 - **Fact Tables**: `fact_sales_order` (sales transactions and product interactions).
 - **Dimension Tables**:
-  - `dim_product`, `dim_customer` (SCD Type 2), `dim_location`.
-  - `dim_colour`, `dim_metal`, `dim_stone`, `dim_store`.
-  - `dim_date` (standardized time analysis).
+    - `dim_product`, `dim_customer` (SCD Type 2), `dim_location`.
+    - `dim_colour`, `dim_metal`, `dim_stone`, `dim_store`.
+    - `dim_date` (standardized time analysis).
 
 ---
 
@@ -127,7 +129,7 @@ cp .env.example .env
 ```
 
 | Key               | Description                                |
-| :---------------- | :----------------------------------------- |
+|:------------------|:-------------------------------------------|
 | `MONGODB_URI`     | Connection string for the raw data source. |
 | `GCS_BUCKET_NAME` | Destination bucket for Parquet files.      |
 | `BQ_PROJECT_ID`   | Your Google Cloud Project ID.              |
@@ -181,6 +183,12 @@ The pipeline tracks execution and data quality:
 - **Data Profiling**: Internal profiling tools to generate data dictionaries.
 
 ---
+
+## Project Flow Diagram
+
+<img src="./gvto.svg"/>
+
+## Star Schema Diagram
 
 ## 📄 License
 

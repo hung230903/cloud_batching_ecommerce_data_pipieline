@@ -4,12 +4,11 @@
 
 {{
   config(
-    materialized = 'table',
     tags = ['mart', 'dimension']
   )
 }}
 
-WITH date_spine AS (
+WITH dim_date_spine AS (
     -- Generate one row per day using BigQuery GENERATE_DATE_ARRAY
     SELECT date_day
     FROM UNNEST(
@@ -38,5 +37,5 @@ SELECT
     EXTRACT(YEAR FROM date_day) AS year,
     EXTRACT(YEAR FROM date_day)                              AS year_number
 
-FROM date_spine
+FROM dim_date_spine
 ORDER BY date_id

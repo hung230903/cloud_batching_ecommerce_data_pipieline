@@ -4,12 +4,11 @@
 
 {{
   config(
-    materialized = 'table',
     tags = ['mart', 'dimension']
   )
 }}
 
-WITH source AS (
+WITH dim_metal_source AS (
     SELECT DISTINCT
         metal_id,
         metal_name
@@ -19,4 +18,4 @@ WITH source AS (
 
 SELECT metal_id,
        metal_name
-FROM source
+FROM dim_metal_source

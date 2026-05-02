@@ -1,31 +1,42 @@
 -- models/mart/dim_location.sql
 -- Purpose: Build location dimension from ip2location staging.
+--          Grain: one row per unique (country, region, city) combination.
+--          Uses surrogate key to avoid IP-level duplication.
 
 {{
   config(
-    materialized = 'table',
     tags = ['mart', 'dimension']
   )
 }}
 
-WITH source AS (
+WITH dim_location_source AS (
     SELECT DISTINCT
-        ip_address,
         country_long,
         country_short,
         region_name,
         city_name
     FROM {{ ref('stg_glamira__ip2location') }}
-    WHERE ip_address IS NOT NULL
+    WHERE country_long IS NOT NULL
+),
+
+dim_location_surrogate AS (
+    SELECT
+        -- Surrogate key based on the unique combination of location attributes
+        FARM_FINGERPRINT(
+            CONCAT(
+                COALESCE(country_long, ''),
+                '|',
+                COALESCE(region_name, ''),
+                '|',
+                COALESCE(city_name, '')
+            )
+        ) AS location_id,
+        country_long,
+        country_short,
+        region_name,
+        city_name
+    FROM dim_location_source
 )
 
-SELECT
-    -- Primary Key (natural key is the IP address)
-    ip_address                   AS location_id,
-    -- BigQuery stores IPs as strings; cast for compatibility
-    FARM_FINGERPRINT(ip_address) AS ip_address_int,
-    country_long,
-    country_short,
-    region_name,
-    city_name
-FROM source
+SELECT *
+FROM dim_location_surrogate

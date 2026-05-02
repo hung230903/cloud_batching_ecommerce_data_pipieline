@@ -24,10 +24,10 @@ models:
       +schema: glamira_staging
       +materialized: view
       +tags: ["staging"]
-    transform:
-      +schema: glamira_transform
+    intermediate:
+      +schema: glamira_intermediate
       +materialized: table
-      +tags: ["transform"]
+      +tags: ["intermediate"]
     mart:
       +schema: glamira_mart
       +materialized: table

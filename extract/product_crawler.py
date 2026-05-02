@@ -66,7 +66,7 @@ def get_product_list_from_filter():
 
 async def get_product_info(session, product, initialized_domains, failed_domains, semaphore):
     pid = str(product["product_id"])
-    candidate_urls = _get_ordered_urls(product["urls"])[:10]
+    candidate_urls = _get_ordered_urls(product["urls"])
 
     if not candidate_urls:
         return "invalid_url", {"pid": pid, "url": None, "all_urls": product.get("urls", [])}
@@ -192,7 +192,7 @@ async def _crawl_products_async(batch_size):
                 else:  # Exception status (string)
                     save_exception_data_to_files(status, result, logger)  # result here is pid
                     exception_cnt += 1
-            
+
             # Cập nhật checkpoint sau mỗi batch hoàn tất
             checkpoint_manager.save_checkpoint(min(i + batch_size, len(products)))
 

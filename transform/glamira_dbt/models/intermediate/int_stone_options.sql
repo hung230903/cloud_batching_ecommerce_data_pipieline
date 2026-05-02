@@ -1,4 +1,4 @@
--- models/transform/int_stone_options.sql
+-- models/intermediate/int_stone_options.sql
 -- Purpose: Flatten the nested stone[] array from stg_glamira__product
 --          into one row per stone option per product.
 --          This intermediate model feeds dim_stone in the mart layer.
@@ -21,13 +21,13 @@ WITH products AS (SELECT product_id,
                           s.element.data_stones.list[SAFE_OFFSET(0)].element.stone_type.default_label    AS stone_type_default_label,
                           s.element.data_stones.list[SAFE_OFFSET(0)].element.stone_name.default_label    AS stone_name_default_label,
                           s.element.data_stones.list[SAFE_OFFSET(0)].element.certificate.default_label   AS stone_certificate_default_label,
-                          SAFE_CAST(
+                          CAST(
                                   s.element.data_stones.list[SAFE_OFFSET(0)].element.carat.default_label AS FLOAT64
                           )                                                                              AS carat_default_label,
-                          SAFE_CAST(
+                          CAST(
                                   s.element.data_stones.list[SAFE_OFFSET(0)].element.total_carat.default_label AS FLOAT64
                           )                                                                              AS total_carat_default_label,
-                          SAFE_CAST(
+                          CAST(
                                   s.element.data_stones.list[SAFE_OFFSET(0)].element.diameter.default_label AS FLOAT64
                           )                                                                              AS diameter_default_label,
                           s.element.data_stones.list[SAFE_OFFSET(0)].element.shape.default_label         AS shape_default_label,

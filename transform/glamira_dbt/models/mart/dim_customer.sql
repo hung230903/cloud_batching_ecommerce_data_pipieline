@@ -4,7 +4,6 @@
 
 {{
   config(
-    materialized = 'table',
     tags = ['mart', 'dimension']
   )
 }}

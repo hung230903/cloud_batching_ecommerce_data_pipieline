@@ -1,4 +1,4 @@
--- models/transform/int_colour_options.sql
+-- models/intermediate/int_colour_options.sql
 -- Purpose: Flatten the nested colour[] array from stg_glamira__product
 --          into one row per colour+metal combination per product.
 --          Feeds dim_colour and dim_metal in the mart layer.

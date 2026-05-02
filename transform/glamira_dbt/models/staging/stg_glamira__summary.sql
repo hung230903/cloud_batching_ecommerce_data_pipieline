@@ -5,32 +5,32 @@
 WITH source AS (SELECT *
                 FROM {{ source('glamira_raw', 'summary') }}),
 
-     renamed AS (SELECT CAST(order_id AS STRING)           AS order_id,
-                        CAST(product_id AS STRING)         AS product_id,
-                        CAST(store_id AS STRING)           AS store_id,
-                        CAST(user_id_db AS STRING)         AS customer_id,
-                        CAST(device_id AS STRING)          AS device_id,
+     renamed AS (SELECT CAST(order_id AS STRING)                     AS order_id,
+                        CAST(product_id AS STRING)                   AS product_id,
+                        CAST(store_id AS STRING)                     AS store_id,
+                        CAST(user_id_db AS STRING)                   AS customer_id,
+                        CAST(device_id AS STRING)                    AS device_id,
                         collection,
                         -- time_stamp is Unix epoch seconds stored as string (e.g. "1590508488")
                         -- SAFE_CAST to TIMESTAMP fails; must convert via TIMESTAMP_SECONDS
-                        TIMESTAMP_SECONDS(SAFE_CAST(time_stamp AS INT64)) AS event_timestamp,
+                        TIMESTAMP_SECONDS(CAST(time_stamp AS INT64)) AS event_timestamp,
                         local_time,
-                        ip                                 AS ip_address,
+                        ip                                           AS ip_address,
                         email_address,
                         user_agent,
                         resolution,
                         utm_source,
                         utm_medium,
                         referrer_url,
-                        price                              AS sale_price,
+                        price                                        AS sale_price,
                         currency,
-                        CAST(is_paypal AS BOOL)            AS is_paypal,
+                        CAST(is_paypal AS BOOL)                      AS is_paypal,
 
                         -- Nested fields passed through for downstream models
                         cart_products,
-                        option
+option
 
-                 FROM source)
+FROM source)
 
 SELECT *
 FROM renamed

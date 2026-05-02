@@ -4,12 +4,11 @@
 
 {{
   config(
-    materialized = 'table',
     tags = ['mart', 'dimension']
   )
 }}
 
-WITH source AS (
+WITH dim_colour_source AS (
     SELECT DISTINCT
         colour_id,
         colour_name
@@ -19,4 +18,4 @@ WITH source AS (
 
 SELECT colour_id,
        colour_name
-FROM source
+FROM dim_colour_source
