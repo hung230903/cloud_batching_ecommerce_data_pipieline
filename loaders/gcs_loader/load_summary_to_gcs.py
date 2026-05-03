@@ -1,17 +1,20 @@
 import os
+
 import bson
+
 from config.base import GCS_SUMMARY_FOLDER, MONGO_BATCH_SIZE, GCS_BUCKET_NAME
 from config.logger import setup_logger
 from processing.transformer.summary_transformer import transform_summary_data
 from schema.schemas import get_summary_pyarrow_schema
 from utils.checkpoint_utils import get_checkpoint_manager
-from utils.gcs_upload_utils import _write_batch_to_gcs
+from utils.gcs_upload_utils import write_batch_to_gcs
 
 logger = setup_logger(
     name="load_summary_to_gcs",
     log_folder="loaders",
     log_file="load_summary_to_gcs.log",
 )
+
 
 def export_bson_to_gcs(
         bson_file_path,
@@ -67,7 +70,7 @@ def export_bson_to_gcs(
 
                 if len(current_batch) >= batch_size:
                     part_idx += 1
-                    _write_batch_to_gcs(
+                    write_batch_to_gcs(
                         current_batch, collection_name, gcs_folder,
                         part_idx, transform_func, schema, GCS_BUCKET_NAME
                     )
@@ -80,7 +83,7 @@ def export_bson_to_gcs(
 
             if current_batch:
                 part_idx += 1
-                _write_batch_to_gcs(
+                write_batch_to_gcs(
                     current_batch, collection_name, gcs_folder,
                     part_idx, transform_func, schema, GCS_BUCKET_NAME
                 )
@@ -99,6 +102,7 @@ def export_bson_to_gcs(
     except Exception as e:
         logger.error(f"[{collection_name}] Error reading BSON file: {e}")
 
+
 def run_load_summary():
     logger.info("=== Exporting SUMMARY ===")
     project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -112,6 +116,7 @@ def run_load_summary():
         transform_func=transform_summary_data,
         schema=summary_schema,
     )
+
 
 if __name__ == "__main__":
     run_load_summary()

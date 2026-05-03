@@ -8,9 +8,10 @@ from config.base import (
     GCS_DESTINATION_FOLDER
 )
 from config.logger import setup_logger
-from schema.schemas import get_product_info_pyarrow_schema
-from utils.gcs_upload_utils import _write_batch_to_gcs
 from processing.transformer.product_info_transformer import transform_product_info_data
+from schema.schemas import get_product_info_pyarrow_schema
+from utils.checkpoint_utils import get_checkpoint_manager
+from utils.gcs_upload_utils import write_batch_to_gcs
 
 logger = setup_logger(
     name="load_product_to_gcs",
@@ -30,7 +31,6 @@ def run_load_product_to_gcs():
     """Đọc dữ liệu JSON, chuyển sang Parquet và đẩy lên GCS."""
     logger.info("=== Exporting PRODUCT INFO ===")
 
-    from utils.checkpoint_utils import get_checkpoint_manager
     checkpoint_manager = get_checkpoint_manager("load_product_to_gcs")
     last_processed_file = checkpoint_manager.get_checkpoint()
 
@@ -63,8 +63,8 @@ def run_load_product_to_gcs():
                 continue
 
             parquet_name = filename.replace(".json", ".parquet")
-            
-            _write_batch_to_gcs(
+
+            write_batch_to_gcs(
                 batch=data,
                 collection_name="product_info",
                 gcs_folder=GCS_DESTINATION_FOLDER,
@@ -84,4 +84,3 @@ def run_load_product_to_gcs():
 
 if __name__ == "__main__":
     run_load_product_to_gcs()
-

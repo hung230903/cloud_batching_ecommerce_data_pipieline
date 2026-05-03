@@ -1,8 +1,10 @@
 import io
+
 import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
 from google.cloud import storage
+
 from config.logger import setup_logger
 
 logger = setup_logger(
@@ -10,6 +12,7 @@ logger = setup_logger(
     log_folder="loaders",
     log_file="gcs_upload.log",
 )
+
 
 def upload_buffer_to_gcs(buffer, bucket_name, destination_blob_name):
     """Upload a memory buffer to GCS."""
@@ -25,7 +28,8 @@ def upload_buffer_to_gcs(buffer, bucket_name, destination_blob_name):
         logger.error(f"FAILED Upload {destination_blob_name}: {e}")
         return False
 
-def _ensure_schema_columns(df, schema):
+
+def ensure_schema_columns(df, schema):
     """Đảm bảo DataFrame có đủ các cột theo schema, thêm cột thiếu nếu cần."""
     for name in schema.names:
         if name not in df.columns:
@@ -35,7 +39,8 @@ def _ensure_schema_columns(df, schema):
                 df[name] = None
     return df[schema.names]
 
-def _write_batch_to_gcs(batch, collection_name, gcs_folder, part_idx, transform_func, schema, bucket_name):
+
+def write_batch_to_gcs(batch, collection_name, gcs_folder, part_idx, transform_func, schema, bucket_name):
     """Chuyển đổi một batch documents sang Parquet buffer và upload lên GCS."""
     logger.info(
         f"[{collection_name}] Writing part {part_idx} | "
@@ -50,7 +55,7 @@ def _write_batch_to_gcs(batch, collection_name, gcs_folder, part_idx, transform_
         df = transform_func(df)
 
     if schema:
-        df = _ensure_schema_columns(df, schema)
+        df = ensure_schema_columns(df, schema)
         table = pa.Table.from_pandas(df, schema=schema)
     else:
         table = pa.Table.from_pandas(df)
@@ -64,5 +69,5 @@ def _write_batch_to_gcs(batch, collection_name, gcs_folder, part_idx, transform_
         destination = f"{gcs_folder}/{part_idx}"
     else:
         destination = f"{gcs_folder}/{collection_name}_part_{part_idx:04d}.parquet"
-        
+
     upload_buffer_to_gcs(parquet_buffer, bucket_name, destination)

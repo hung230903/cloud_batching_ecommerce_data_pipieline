@@ -90,7 +90,7 @@ for seamless data ingestion.
 │   └── mongo_loader/          # MongoDB specific uploaders
 │       └── load_ip_to_mongo.py          # Maps IPs to Geo-data
 ├── monitoring/                # Quality assurance & profiling
-│   ├── data_profiler.py       # Deep profiling & data dictionaries
+│   ├── data_profiler.py       # Profiling & data dictionaries
 │   └── e2e_test.py            # End-to-end pipeline integration tests
 ├── processing/                # Transformation & Enrichment
 │   ├── enricher/              # Data Enrichment (Lookup / HTML parsing)
@@ -113,7 +113,6 @@ for seamless data ingestion.
 │   ├── checkpoint_utils.py    # Pipeline resume management
 │   ├── data_transform_utils.py # Shared transform functions (safe_bool, safe_int...)
 │   ├── gcs_upload_utils.py    # Shared GCS Parquet upload & batching logic
-│   ├── file_saving_utils.py   # JSON/Parquet file handlers
 │   ├── time_utils.py          # Time formatting utilities
 │   ├── field_extractor_utils.py # Nested field extraction helpers
 │   └── file_format_converter_utils.py # Conversion between data formats

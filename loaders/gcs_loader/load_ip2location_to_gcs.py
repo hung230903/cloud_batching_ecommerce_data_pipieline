@@ -1,18 +1,20 @@
-import os
 import glob
 import json
+import os
+
 from config.base import GCS_IP2LOCATION_FOLDER, IP2LOCATION_DIR, GCS_BUCKET_NAME
 from config.logger import setup_logger
 from processing.transformer.ip2location_transformer import transform_ip2location_data
 from schema.schemas import get_ip2location_pyarrow_schema
 from utils.checkpoint_utils import get_checkpoint_manager
-from utils.gcs_upload_utils import _write_batch_to_gcs
+from utils.gcs_upload_utils import write_batch_to_gcs
 
 logger = setup_logger(
     name="load_ip2location_to_gcs",
     log_folder="loaders",
     log_file="load_ip2location_to_gcs.log",
 )
+
 
 def run_load_ip2location():
     """Đọc dữ liệu IP2Location từ các file JSON và upload lên GCS."""
@@ -52,7 +54,7 @@ def run_load_ip2location():
 
             parquet_name = filename.replace(".json", ".parquet")
 
-            _write_batch_to_gcs(
+            write_batch_to_gcs(
                 batch=data,
                 collection_name="ip2location",
                 gcs_folder=GCS_IP2LOCATION_FOLDER,
@@ -66,6 +68,7 @@ def run_load_ip2location():
 
         except Exception as e:
             logger.error(f"[ip2location] Failed to process {filename}: {e}")
+
 
 if __name__ == "__main__":
     run_load_ip2location()
