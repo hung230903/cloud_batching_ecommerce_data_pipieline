@@ -1,6 +1,6 @@
 import logging
-from logging.handlers import RotatingFileHandler
 import os
+from logging.handlers import RotatingFileHandler
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 LOG_DIR = os.path.join(BASE_DIR, "logs")
@@ -14,7 +14,6 @@ def setup_logger(name=None, log_folder=None, log_file=LOG_FILE):
     logger = logging.getLogger(name)
     logger.setLevel(LOG_LEVEL)
 
-    # Tránh add handler trùng
     if logger.hasHandlers():
         return logger
 

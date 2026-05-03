@@ -17,14 +17,14 @@ from config.base import (
     CRAWLER_BATCH_SIZE, CRAWLER_UA
 )
 from config.logger import setup_logger
+from processing.enricher.product_info_enricher import extract_product_data
+from utils.checkpoint_utils import get_checkpoint_manager
 from utils.file_saving_utils import (
     save_success_data_to_files,
     save_error_data_to_files,
     save_exception_data_to_files,
 )
 from utils.time_utils import format_duration
-from processing.product_info_extractor import extract_product_data
-from utils.checkpoint_utils import get_checkpoint_manager
 
 # Module-level logger
 logger = setup_logger(

@@ -3,7 +3,7 @@ import glob
 import json
 from config.base import GCS_IP2LOCATION_FOLDER, IP2LOCATION_DIR, GCS_BUCKET_NAME
 from config.logger import setup_logger
-from processing.ip2location_transformer import transform_ip2location_data
+from processing.transformer.ip2location_transformer import transform_ip2location_data
 from schema.schemas import get_ip2location_pyarrow_schema
 from utils.checkpoint_utils import get_checkpoint_manager
 from utils.gcs_upload_utils import _write_batch_to_gcs

@@ -8,15 +8,22 @@ process, and analyze data from the Glamira e-commerce platform. The project impl
 
 ## 📋 Table of Contents
 
+- [Project Flow Diagram Overview](#project-flow-diagram-overview)
 - [Data Pipeline Architecture](#-data-pipeline-architecture)
 - [Tech Stack](#-tech-stack)
 - [Project Structure](#-project-structure)
 - [Features](#-features)
-- [Data Modeling](#-data-modeling)
+- [Data Modeling](#-data-modeling-dbt)
 - [Configuration](#-configuration)
 - [Getting Started](#-getting-started)
 - [Deployment (Cloud Functions)](#-deployment-cloud-functions)
 - [Monitoring](#-monitoring)
+
+---
+
+## Project Flow Diagram Overview
+
+<img src="./gvto.svg"/>
 
 ---
 
@@ -25,14 +32,14 @@ process, and analyze data from the Glamira e-commerce platform. The project impl
 The pipeline is organized into modular stages, combining manual/scheduled extraction with **event-driven automation**
 for seamless data ingestion.
 
-| Stage                        | Description                                                                               | Orchestration       |
-|:-----------------------------|:------------------------------------------------------------------------------------------|:--------------------|
-| **Stage 1: IP to Location**  | Converts raw user IP addresses into geographic data using IP2Location LITE DB.            | Manual/Local        |
-| **Stage 2: PID Filter**      | Filters and identifies new Product IDs (PIDs) for crawling from summary logs.             | Manual/Local        |
-| **Stage 3: Product Crawler** | Asynchronous high-performance crawling of detailed product info (name, price, options).   | Manual/Local        |
-| **Stage 4: Storage Sync**    | Consolidates and syncs processed data (JSON/BSON) to GCS in **Optimized Parquet** format. | Manual/Local        |
-| **Stage 5: BigQuery Load**   | **Automated** ingestion of Parquet files from GCS into BigQuery raw tables.               | **Cloud Functions** |
-| **Stage 6: dbt Transform**   | Executes SQL transformations to build the analytical **Star Schema**.                     | dbt Cloud / Local   |
+| Stage                        | Description                                                                                       | Orchestration       |
+|:-----------------------------|:--------------------------------------------------------------------------------------------------|:--------------------|
+| **Stage 1: IP to Location**  | Enrich raw user IP addresses into geographic data using IP2Location LITE DB.                      | Manual/Local        |
+| **Stage 2: PID Filter**      | Filters Product IDs (PIDs) and all associated Product URLs for crawling.                          | Manual/Local        |
+| **Stage 3: Product Crawler** | Asynchronous high-performance crawling for product info enrichment.                               | Manual/Local        |
+| **Stage 4: Export to GCS**   | Consolidates and syncs processed data (JSON/BSON) to GCS in **Optimized Parquet** format.         | Manual/Local        |
+| **Stage 5: BigQuery Load**   | **Automated** with **CLoud Functions** to ingest Parquet files from GCS into BigQuery raw tables. | **Cloud Functions** |
+| **Stage 6: dbt Transform**   | Executes SQL transformations to build the analytical **Star Schema**.                             | dbt Cloud / Local   |
 
 ### 🔄 Event-Driven Flow
 
@@ -74,17 +81,25 @@ for seamless data ingestion.
 │   ├── pid_filter.py          # Filters unique Product IDs (PIDs)
 │   └── product_crawler.py     # Async high-performance crawler
 ├── loaders/                   # Data movement & synchronization
+│   ├── main_gcs_export.py     # Main orchestrator for GCS export
 │   ├── gcs_to_bq.py           # Manual BigQuery load orchestrator
-│   ├── load_ip_to_mongo.py    # Maps IPs to Geo-data
-│   ├── load_product_info_to_gcs.py # Syncs local JSON products to GCS
-│   └── load_summary_to_gcs.py # Consolidated export (Summary + IP)
+│   ├── gcs_loader/            # GCS specific uploaders
+│   │   ├── load_ip2location_to_gcs.py   # Syncs IP location JSONs to GCS
+│   │   ├── load_product_info_to_gcs.py  # Syncs Product JSONs to GCS
+│   │   └── load_summary_to_gcs.py       # Syncs massive Summary BSON to GCS
+│   └── mongo_loader/          # MongoDB specific uploaders
+│       └── load_ip_to_mongo.py          # Maps IPs to Geo-data
 ├── monitoring/                # Quality assurance & profiling
 │   ├── data_profiler.py       # Deep profiling & data dictionaries
 │   └── e2e_test.py            # End-to-end pipeline integration tests
 ├── processing/                # Transformation & Enrichment
-│   ├── ip_transformer.py      # IP2Location transformation logic
-│   ├── product_info_extractor.py # HTML parsing for product data
-│   └── summary_transformer.py  # Cleaning event schemas
+│   ├── enricher/              # Data Enrichment (Lookup / HTML parsing)
+│   │   ├── ip_enricher.py              # IP to Geo-location enrichment
+│   │   └── product_info_enricher.py    # HTML parsing for product data
+│   └── transformer/           # Data Transformation & Cleaning
+│       ├── ip2location_transformer.py  # Cleans IP Geo data
+│       ├── product_info_transformer.py # Strictly casts Product to PyArrow schema
+│       └── summary_transformer.py      # Cleans complex nested Summary events
 ├── schema/                    # Schema definitions
 │   └── schemas.py             # PyArrow & BigQuery schemas
 ├── transform/                 # dbt Transformation layer
@@ -96,6 +111,8 @@ for seamless data ingestion.
 │       └── profiles.yml       # BQ connection profiles
 ├── utils/                     # Reusable helper functions
 │   ├── checkpoint_utils.py    # Pipeline resume management
+│   ├── data_transform_utils.py # Shared transform functions (safe_bool, safe_int...)
+│   ├── gcs_upload_utils.py    # Shared GCS Parquet upload & batching logic
 │   ├── file_saving_utils.py   # JSON/Parquet file handlers
 │   ├── time_utils.py          # Time formatting utilities
 │   ├── field_extractor_utils.py # Nested field extraction helpers
@@ -116,8 +133,7 @@ for seamless data ingestion.
 
 - **Local-First Processing**: IP2Location and Product Info are processed from local JSON batches, significantly reducing
   MongoDB overhead and API latency.
-- **Asynchronous Crawling**: Utilizes `aiohttp` with semaphores to crawl thousands of products efficiently without being
-  blocked.
+- **Asynchronous Crawling**: Apply `aiohttp` with `semaphores` to crawl thousands of products efficiently.
 
 ### 🤖 Serverless Automation
 
@@ -160,7 +176,6 @@ The system uses a `.env` file for secure configuration.
 | `GCS_SUMMARY_FOLDER`      | Folder for summary logs in GCS.            |
 | `GCS_PRODUCT_INFO_FOLDER` | Folder for product info in GCS.            |
 | `GCS_IP2LOCATION_FOLDER`  | Folder for IP location data in GCS.        |
-| `IP2LOCATION_DB_FILE`     | Path to the .BIN file for IP mapping.      |
 
 ---
 
@@ -197,7 +212,7 @@ dbt run
 
 ## ☁️ Deployment (Cloud Functions)
 
-To deploy the automated BigQuery loader:
+To deploy the automated BigQuery loader, remember to assign your values in **--set-env-vars**:
 
 ```bash
 gcloud functions deploy gcs_to_bq \
@@ -218,10 +233,6 @@ gcloud functions deploy gcs_to_bq \
 - **Checkpointing**: Uses local checkpoints to resume failed extraction jobs from the last successful record.
 
 ---
-
-## Project Flow Diagram
-
-<img src="./gvto.svg"/>
 
 ## 📄 License
 

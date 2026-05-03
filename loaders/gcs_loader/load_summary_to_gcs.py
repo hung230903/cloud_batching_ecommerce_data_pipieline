@@ -2,7 +2,7 @@ import os
 import bson
 from config.base import GCS_SUMMARY_FOLDER, MONGO_BATCH_SIZE, GCS_BUCKET_NAME
 from config.logger import setup_logger
-from processing.summary_transformer import transform_summary_data
+from processing.transformer.summary_transformer import transform_summary_data
 from schema.schemas import get_summary_pyarrow_schema
 from utils.checkpoint_utils import get_checkpoint_manager
 from utils.gcs_upload_utils import _write_batch_to_gcs

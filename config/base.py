@@ -1,5 +1,6 @@
-import os
 import json
+import os
+
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -8,7 +9,7 @@ DATA_DIR = os.getenv("DATA_DIR", "./data")
 
 # Ip2location
 IP2LOCATION_DIR = os.path.join(DATA_DIR, os.getenv("IP2LOCATION_DIR_NAME", "ip2location"))
-IP2LOCATION_BATCH_SIZE = int(os.getenv("IP2LOCATION_BATCH_SIZE", 100000))
+IP2LOCATION_BATCH_SIZE = int(os.getenv("IP2LOCATION_BATCH_SIZE", 100_000))
 IP2LOCATION_DB = os.getenv("IP2LOCATION_DB_FILE", "./IP2LOCATION-LITE-DB11.BIN")
 
 # Pid Filter
@@ -22,7 +23,7 @@ CRAWLER_SEMAPHORE = int(os.getenv("PRODUCT_CRAWLER_SEMAPHORE", 10))
 CRAWLER_TIMEOUT = int(os.getenv("PRODUCT_CRAWLER_TIMEOUT", 15))
 CRAWLER_MAX_RETRIES = int(os.getenv("PRODUCT_CRAWLER_MAX_RETRIES", 3))
 CRAWLER_HEADERS = json.loads(os.getenv("PRODUCT_CRAWLER_HEADERS", '{}'))
-CRAWLER_UA = "glamira-crawler/1.0"
+CRAWLER_UA = os.getenv("PRODUCT_CRAWLER_UA", '')
 
 # Export to GCS
 SUCCESS_DIR = os.getenv("SUCCESS_DIR", "data/product_info/success")
@@ -37,8 +38,9 @@ MONGO_URI = os.getenv("MONGODB_URI")
 MONGO_DB = os.getenv("MONGODB_DB_NAME", "glamira")
 SUMMARY_COLLECTION = os.getenv("MONGODB_RAW_DATA_COL", "summary")
 IP_COLLECTION = os.getenv("MONGODB_IP2LOCATION_COL", "ip_location")
-MONGO_BATCH_SIZE = int(os.getenv("MONGO_BATCH_SIZE", 500000)) # Số dòng mỗi file Parquet (Part)
-PRODUCT_EVENT_COLLECTIONS = json.loads(os.getenv("MONGODB_PRODUCT_EVENTS", '["view_product_detail", "select_product_option", "select_product_option_quality", "add_to_cart_action", "product_detail_recommendation_visible", "product_detail_recommendation_noticed", "product_view_all_recommend_clicked"]'))
+MONGO_BATCH_SIZE = int(os.getenv("MONGO_BATCH_SIZE", 500_000))
+PRODUCT_EVENT_COLLECTIONS = json.loads(os.getenv("MONGODB_PRODUCT_EVENTS",
+                                                 '["view_product_detail", "select_product_option", "select_product_option_quality", "add_to_cart_action", "product_detail_recommendation_visible", "product_detail_recommendation_noticed", "product_view_all_recommend_clicked"]'))
 
 # BigQuery
 BQ_PROJECT_ID = os.getenv("BQ_PROJECT_ID", "your-gcp-project-id")

@@ -1,19 +1,20 @@
 import os
 import sys
 import time
-from pymongo import MongoClient, UpdateOne
 from concurrent.futures import ProcessPoolExecutor
 from itertools import islice
+
+from pymongo import MongoClient, UpdateOne
 
 from config.base import (
     IP2LOCATION_DIR, IP2LOCATION_BATCH_SIZE,
     MONGO_URI, MONGO_DB, SUMMARY_COLLECTION, IP_COLLECTION
 )
 from config.logger import setup_logger
+from processing.enricher.ip_enricher import lookup_ip
 from utils import time_utils
-from utils.file_saving_utils import save_json_batch
-from processing.ip_transformer import lookup_ip
 from utils.checkpoint_utils import get_checkpoint_manager
+from utils.file_saving_utils import save_json_batch
 
 # Add root path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))

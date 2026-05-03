@@ -10,7 +10,7 @@ from config.base import (
 from config.logger import setup_logger
 from schema.schemas import get_product_info_pyarrow_schema
 from utils.gcs_upload_utils import _write_batch_to_gcs
-from processing.product_info_transformer import transform_product_info_data
+from processing.transformer.product_info_transformer import transform_product_info_data
 
 logger = setup_logger(
     name="load_product_to_gcs",
