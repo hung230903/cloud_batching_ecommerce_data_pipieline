@@ -1,23 +1,21 @@
-import os
-import sys
 import glob
+import os
 import unittest
-from pymongo import MongoClient
-from google.cloud import storage, bigquery
 
-# Add root path
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from google.cloud import storage, bigquery
+from pymongo import MongoClient
 
 from config.base import (
-    MONGO_URI, MONGO_DB, SUMMARY_COLLECTION, IP_COLLECTION,
+    MONGO_URI, MONGO_DB, IP_COLLECTION,
     PID_FILTER_DIR, IP2LOCATION_DIR, PRODUCT_INFO_DIR,
     GCS_BUCKET_NAME, BQ_PROJECT_ID, BQ_DATASET_ID,
     BQ_TABLE_SUMMARY, BQ_TABLE_IP2LOCATION,
     GCS_SUMMARY_FOLDER, GCS_IP2LOCATION_FOLDER
 )
 
+
 class TestEndToEndPipeline(unittest.TestCase):
-    
+
     @classmethod
     def setUpClass(cls):
         """Prepare clients."""
@@ -31,7 +29,7 @@ class TestEndToEndPipeline(unittest.TestCase):
         # Check Mongo
         count = self.db[IP_COLLECTION].count_documents({})
         self.assertGreater(count, 0, f"Collection {IP_COLLECTION} is empty!")
-        
+
         # Check local JSON files
         pattern = os.path.join(IP2LOCATION_DIR, "ip_location_batch_*.json")
         files = glob.glob(pattern)
@@ -57,14 +55,15 @@ class TestEndToEndPipeline(unittest.TestCase):
     def test_stage_4_gcs_outputs(self):
         """Check Stage 4 outputs: Parquet files in GCS."""
         bucket = self.gcs_client.bucket(GCS_BUCKET_NAME)
-        
+
         # Check summary folder
         blobs = list(bucket.list_blobs(prefix=GCS_SUMMARY_FOLDER, max_results=1))
         self.assertGreater(len(blobs), 0, f"No Parquet files found in GCS: gs://{GCS_BUCKET_NAME}/{GCS_SUMMARY_FOLDER}")
-        
+
         # Check ip2location folder
         blobs = list(bucket.list_blobs(prefix=GCS_IP2LOCATION_FOLDER, max_results=1))
-        self.assertGreater(len(blobs), 0, f"No Parquet files found in GCS: gs://{GCS_BUCKET_NAME}/{GCS_IP2LOCATION_FOLDER}")
+        self.assertGreater(len(blobs), 0,
+                           f"No Parquet files found in GCS: gs://{GCS_BUCKET_NAME}/{GCS_IP2LOCATION_FOLDER}")
         print(f"STAGE 4 PASSED: Verified Parquet files in GCS bucket {GCS_BUCKET_NAME}")
 
     def test_stage_5_bigquery_tables(self):
@@ -78,6 +77,7 @@ class TestEndToEndPipeline(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
         cls.mongo_client.close()
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -28,7 +28,7 @@ CRAWLER_UA = os.getenv("PRODUCT_CRAWLER_UA", '')
 # Export to GCS
 SUCCESS_DIR = os.getenv("SUCCESS_DIR", "data/product_info/success")
 GCS_BUCKET_NAME = os.getenv("GCS_BUCKET_NAME", "glamira_project_bucket")
-GCS_DESTINATION_FOLDER = os.getenv("GCS_DESTINATION_FOLDER", "product_info")
+GCS_PRODUCT_INFO_FOLDER = os.getenv("GCS_DESTINATION_FOLDER", "product_info")
 GCS_IP2LOCATION_FOLDER = os.getenv("GCS_IP2LOCATION_FOLDER", "ip2location")
 GCS_SUMMARY_FOLDER = os.getenv("GCS_SUMMARY_FOLDER", "summary_data")
 SUMMARY_BSON_PATH = os.getenv("SUMMARY_BSON_PATH", "data/glamira-data/summary.bson")

@@ -28,9 +28,9 @@ WITH source AS (SELECT *
 
                         -- Nested fields passed through for downstream models
                         cart_products,
-option
-
-FROM source)
+                        option
+                FROM source
+                WHERE time_stamp IS NOT NULL)
 
 SELECT *
 FROM renamed

@@ -1,5 +1,4 @@
 import os
-import sys
 import time
 from concurrent.futures import ProcessPoolExecutor
 from itertools import islice
@@ -15,9 +14,6 @@ from processing.enricher.ip_enricher import lookup_ip
 from utils import time_utils
 from utils.checkpoint_utils import get_checkpoint_manager
 from utils.file_saving_utils import save_json_batch
-
-# Add root path
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # logger
 logger = setup_logger(
@@ -104,9 +100,8 @@ def _process_ips(output_col, checkpoint_manager, batch_size, workers):
         try:
             checkpoint = int(checkpoint_data)
             file_idx = (checkpoint // batch_size) + 1
-        except:
+        except (ValueError, TypeError):
             checkpoint = 0
-            raise
 
     logger.info(f"PHASE 2 START | Processing IPs from file (Skipping {checkpoint} IPs, start file_idx {file_idx})")
 
@@ -193,9 +188,8 @@ def run_ip_to_location(
         else:
             try:
                 checkpoint = int(checkpoint_data or 0)
-            except:
+            except (ValueError, TypeError):
                 checkpoint = 0
-                raise
 
         # Check if we should run Phase 1
         # If checkpoint exists (> 0), Phase 1 is skipped to preserve the order in file

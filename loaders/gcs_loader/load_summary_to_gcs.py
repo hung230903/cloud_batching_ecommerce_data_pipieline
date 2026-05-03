@@ -1,8 +1,6 @@
-import os
-
 import bson
 
-from config.base import GCS_SUMMARY_FOLDER, MONGO_BATCH_SIZE, GCS_BUCKET_NAME
+from config.base import GCS_SUMMARY_FOLDER, MONGO_BATCH_SIZE, GCS_BUCKET_NAME, SUMMARY_BSON_PATH
 from config.logger import setup_logger
 from processing.transformer.summary_transformer import transform_summary_data
 from schema.schemas import get_summary_pyarrow_schema
@@ -105,12 +103,10 @@ def export_bson_to_gcs(
 
 def run_load_summary():
     logger.info("=== Exporting SUMMARY ===")
-    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    bson_file_path = os.path.join(project_root, "data", "glamira-data", "summary.bson")
 
     summary_schema = get_summary_pyarrow_schema()
     export_bson_to_gcs(
-        bson_file_path=bson_file_path,
+        bson_file_path=SUMMARY_BSON_PATH,
         collection_name="summary",
         gcs_folder=GCS_SUMMARY_FOLDER,
         transform_func=transform_summary_data,

@@ -2,8 +2,8 @@ version: 2
 
 sources:
   - name: glamira_raw
-    database: "{{ var('project_id') }}"
-    schema: "{{ var('raw_dataset') }}"
+    database: "{{ env_var('BQ_PROJECT_ID', var('project_id')) }}"
+    schema: "{{ env_var('BQ_DATASET_ID', var('raw_dataset')) }}"
     description: "Raw tables loaded from GCS into BigQuery (glamira_project dataset)"
 
     tables:

@@ -172,9 +172,8 @@ async def _crawl_products_async(batch_size):
     elif isinstance(checkpoint_data, (str, int)):
         try:
             start_index = int(checkpoint_data)
-        except:
+        except (ValueError, TypeError):
             start_index = 0
-            raise
 
     os.makedirs(PRODUCT_INFO_DIR, exist_ok=True)
     logger.info(

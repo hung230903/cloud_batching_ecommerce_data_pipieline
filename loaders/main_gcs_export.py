@@ -1,14 +1,10 @@
 import os
-import sys
 from datetime import datetime
 
-# Add root path
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-
+from config.logger import setup_logger
+from loaders.gcs_loader.load_ip2location_to_gcs import run_load_ip2location
 from loaders.gcs_loader.load_product_info_to_gcs import run_load_product_to_gcs
 from loaders.gcs_loader.load_summary_to_gcs import run_load_summary
-from loaders.gcs_loader.load_ip2location_to_gcs import run_load_ip2location
-from config.logger import setup_logger
 
 logger = setup_logger(
     name="main_export",

@@ -1,21 +1,19 @@
+import glob
+import json
 import os
-import sys
-import pandas as pd
-from pymongo import MongoClient
-from google.cloud import bigquery
+import random
 from datetime import datetime
 
-# Add root path to import config
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import pandas as pd
+from google.cloud import bigquery
+from pymongo import MongoClient
 
 from config.base import (
     MONGO_URI, MONGO_DB, SUMMARY_COLLECTION, IP_COLLECTION,
     BQ_PROJECT_ID, BQ_DATASET_ID, BQ_TABLE_SUMMARY, BQ_TABLE_IP2LOCATION,
     PRODUCT_INFO_DIR, BQ_TABLE_PRODUCT_INFO
 )
-import glob
-import json
-import random
+from config.logger import setup_logger
 
 # Tạo thư mục data_dictionary nếu chưa có
 DICTIONARY_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data_dictionary")
@@ -131,22 +129,23 @@ FIELD_DESCRIPTIONS = {
 
 }
 
+
 def _get_description(path):
     """Provides a detailed English description for a field path using direct map or pattern recognition."""
     p_lower = path.lower()
-    
+
     # 1. Correct color/colour discrepancy
     normalized_path = path.replace("color.", "colour.").replace(".colour", ".colour_code")
     if p_lower == "color": normalized_path = "colour"
-    
+
     # 2. Check direct map
     if normalized_path in FIELD_DESCRIPTIONS:
         return FIELD_DESCRIPTIONS[normalized_path]
-    
+
     # 3. Fuzzy matching for components
     parts = normalized_path.split('.')
     leaf = parts[-1]
-    
+
     # Rule based descriptions for common suffixes
     if leaf.endswith("_url"):
         return f"Web URL link to the resource: {leaf.replace('_url', '')}"
@@ -170,8 +169,9 @@ def _get_description(path):
     # Search in dictionary for the leaf name
     if leaf in FIELD_DESCRIPTIONS:
         return FIELD_DESCRIPTIONS[leaf]
-        
+
     return "N/A (See parent components for context)"
+
 
 def _df_to_markdown(df):
     """Xây dựng bảng Markdown thủ công từ DataFrame (không phụ thuộc 'tabulate')."""
@@ -185,14 +185,13 @@ def _df_to_markdown(df):
         rows.append("| " + " | ".join(row_clean) + " |")
     return "\n".join([header, sep] + rows)
 
-from config.logger import setup_logger
-from config.logger import setup_logger
 
 logger = setup_logger(
     name="data_profiler",
     log_folder="monitoring",
     log_file="profiler.log",
 )
+
 
 def _generate_deep_profile(data, source_name, custom_file_name=None):
     """
@@ -219,7 +218,8 @@ def _generate_deep_profile(data, source_name, custom_file_name=None):
         if prefix and not is_list_item:
             field_stats[prefix]["types"].add(type(obj).__name__)
             if isinstance(obj, (dict, list)):
-                val_to_record = True if obj is not None and (not isinstance(obj, (dict, list)) or len(obj) > 0) else None
+                val_to_record = True if obj is not None and (
+                        not isinstance(obj, (dict, list)) or len(obj) > 0) else None
                 field_stats[prefix]["values"].append(val_to_record)
             else:
                 field_stats[prefix]["values"].append(obj)
@@ -237,7 +237,7 @@ def _generate_deep_profile(data, source_name, custom_file_name=None):
 
     for doc in data:
         # Xử lý format của BigQuery row (nếu là Row object hoặc dict thô)
-        if hasattr(doc, "items"): # dict-like
+        if hasattr(doc, "items"):  # dict-like
             walk(dict(doc), "")
         else:
             walk(doc, "")
@@ -247,12 +247,12 @@ def _generate_deep_profile(data, source_name, custom_file_name=None):
         vals = stats["values"]
         non_null = [v for v in vals if v is not None and not (isinstance(v, float) and pd.isna(v))]
         null_count = len(vals) - len(non_null)
-        
+
         try:
             distinct_count = len(set(non_null))
         except TypeError:
             distinct_count = len(set(str(v) for v in non_null))
-        
+
         # Format sample string
         samples_str = ", ".join([str(s) for s in stats["samples"]])
         if not samples_str: samples_str = "N/A"
@@ -261,14 +261,14 @@ def _generate_deep_profile(data, source_name, custom_file_name=None):
             "Field Path": path,
             "Types": ", ".join(sorted(stats["types"])),
             "Instances": len(vals),
-            "Nulls": f"{null_count} ({(null_count/len(vals))*100 if vals else 0:.1f}%)",
+            "Nulls": f"{null_count} ({(null_count / len(vals)) * 100 if vals else 0:.1f}%)",
             "Uniques": distinct_count,
             "Sample Data": samples_str,
             "Description": _get_description(path)
         })
-        
+
     profile_df = pd.DataFrame(profile_summary).sort_values("Field Path")
-    
+
     # Hiển thị ra console
     print(f"\n[{source_name} Deep Profiling Report]")
     with pd.option_context('display.max_rows', 10, 'display.max_columns', None):
@@ -287,46 +287,48 @@ def _generate_deep_profile(data, source_name, custom_file_name=None):
         else:
             task_key = source_name.replace(":", "_").replace(" ", "_").lower()
         file_path = os.path.join(DICTIONARY_DIR, f"{task_key}_data_dictionary.md")
-    
+
     with open(file_path, "w", encoding="utf-8") as f:
         f.write(f"# Data Dictionary: {source_name}\n\n")
         f.write(f"Generated at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
         f.write(_df_to_markdown(profile_df))
         f.write("\n\n---\n*Ghi chú: Bảng này được tạo tự động dựa trên mẫu dữ liệu hiện tại.*")
-    
+
     logger.info(f"Saved Data Dictionary to: {file_path}")
+
 
 def profile_mongodb_collection(mongo_uri, db_name, collection_name, sample_size=1000):
     """
     Profile a MongoDB collection with deep inspection.
     """
     logger.info(f"--- Profiling MongoDB Collection: {collection_name} (Sample: {sample_size}) ---")
-    
+
     client = MongoClient(mongo_uri)
     db = client[db_name]
     collection = db[collection_name]
-    
+
     # Check total count
     total_count = collection.count_documents({})
     logger.info(f"Total documents: {total_count:,}")
-    
+
     # Check Indices
     indices = list(collection.list_indexes())
     print(f"\n[MongoDB: {collection_name} Constraints/Indices]")
     for idx in indices:
         print(f" - Index: {idx['name']} | Fields: {idx['key']} | Unique: {idx.get('unique', False)}")
-    
+
     # Get sample data as list of dicts
     cursor = collection.find().limit(sample_size)
     data = list(cursor)
-    
+
     # Loại bỏ _id khỏi profiling
     for d in data:
         if '_id' in d: del d['_id']
-        
+
     _generate_deep_profile(data, f"MongoDB: {collection_name}")
-    
+
     client.close()
+
 
 def profile_local_product_info(product_info_dir):
     """
@@ -334,23 +336,24 @@ def profile_local_product_info(product_info_dir):
     """
     success_dir = os.path.join(product_info_dir, "success")
     json_files = glob.glob(os.path.join(success_dir, "product_info_*.json"))
-    
+
     if not json_files:
         logger.warning(f"No product info JSON files found in {success_dir}")
         return
-    
+
     selected_file = random.choice(json_files)
     logger.info(f"--- Profiling Local File: {os.path.basename(selected_file)} (Entire File) ---")
-    
+
     try:
         with open(selected_file, 'r', encoding='utf-8') as f:
             data = json.load(f)
             if not isinstance(data, list):
                 data = [data]
-            
+
             _generate_deep_profile(data, f"Local File: {os.path.basename(selected_file)}")
     except Exception as e:
         logger.error(f"Error reading file {selected_file}: {e}")
+
 
 def profile_bigquery_table(client, dataset_id, table_id, sample_size=1000):
     """
@@ -358,7 +361,7 @@ def profile_bigquery_table(client, dataset_id, table_id, sample_size=1000):
     """
     table_ref = f"{BQ_PROJECT_ID}.{dataset_id}.{table_id}"
     logger.info(f"--- Profiling BigQuery Table: {table_ref} (Sample: {sample_size}) ---")
-    
+
     # 1. Get sample data (BigQuery auto-flattens Row objects slightly but we can cast to dict)
     query_sample = f"SELECT * FROM `{table_ref}` LIMIT {sample_size}"
     try:
@@ -376,21 +379,22 @@ def profile_bigquery_table(client, dataset_id, table_id, sample_size=1000):
     # Use the deep profiling logic to handle nested fields
     file_name = f"bq_{table_id}_profiler.md"
     _generate_deep_profile(data, f"BigQuery: {table_id}", custom_file_name=file_name)
-    
+
     logger.info(f"Completed deep profiling for BigQuery table: {table_id}")
+
 
 def run_profiling():
     logger.info("=== STARTING DATA PROFILING ===")
-    
+
     # 1. Profile MongoDB
     logger.info("--- [1/3] MongoDB Collections Profiling ---")
     profile_mongodb_collection(MONGO_URI, MONGO_DB, SUMMARY_COLLECTION)
     profile_mongodb_collection(MONGO_URI, MONGO_DB, IP_COLLECTION)
-    
+
     # 2. Profile Local Files
     logger.info("--- [2/3] Local JSON Files Profiling ---")
     profile_local_product_info(PRODUCT_INFO_DIR)
-    
+
     # 3. Profile BigQuery
     logger.info("--- [3/3] BigQuery Tables Profiling ---")
     try:
@@ -403,6 +407,7 @@ def run_profiling():
         print(f"FAILED TO PROFILE BIGQUERY: {e}. Ensure you have GCP access.")
 
     logger.info("=== DATA PROFILING COMPLETED ===")
+
 
 if __name__ == "__main__":
     run_profiling()

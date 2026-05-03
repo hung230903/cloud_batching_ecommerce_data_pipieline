@@ -34,8 +34,7 @@ SELECT
     EXTRACT(DAYOFYEAR FROM date_day)               AS day_of_the_year,
     EXTRACT(WEEK FROM date_day)                    AS week_of_year,
     EXTRACT(QUARTER FROM date_day)                 AS quarter_number,
-    EXTRACT(YEAR FROM date_day) AS year,
-    EXTRACT(YEAR FROM date_day)                              AS year_number
+    EXTRACT(YEAR FROM date_day)                    AS year_number
 
 FROM dim_date_spine
 ORDER BY date_id

@@ -9,7 +9,9 @@ WITH source AS (SELECT *
                         -- BigQuery ip2location schema uses country_long/short; map accordingly
                         SUBSTR(country, 1, 2) AS country_short,
                         region                AS region_name,
-                        city                  AS city_name
+                        city                  AS city_name,
+                        CAST(latitude AS FLOAT64)  AS latitude,
+                        CAST(longitude AS FLOAT64) AS longitude
                  FROM source)
 
 SELECT *

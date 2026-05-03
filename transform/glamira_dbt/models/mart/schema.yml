@@ -18,7 +18,7 @@ models:
         tests:
           - not_null
 
-      - name: year
+      - name: year_number
         tests:
           - not_null
 

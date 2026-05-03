@@ -113,9 +113,9 @@ for seamless data ingestion.
 │   ├── checkpoint_utils.py    # Pipeline resume management
 │   ├── data_transform_utils.py # Shared transform functions (safe_bool, safe_int...)
 │   ├── gcs_upload_utils.py    # Shared GCS Parquet upload & batching logic
+│   ├── file_saving_utils.py   # JSON/Parquet file handlers
 │   ├── time_utils.py          # Time formatting utilities
 │   ├── field_extractor_utils.py # Nested field extraction helpers
-│   └── file_format_converter_utils.py # Conversion between data formats
 ├── data_dictionary/           # Data profiling & metadata docs
 ├── checkpoint/                # Pipeline state for resumable jobs
 ├── dashboard.py               # Streamlit-based analytics dashboard

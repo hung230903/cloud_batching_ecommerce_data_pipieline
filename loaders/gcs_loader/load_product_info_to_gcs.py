@@ -5,7 +5,7 @@ import os
 from config.base import (
     PRODUCT_INFO_DIR,
     GCS_BUCKET_NAME,
-    GCS_DESTINATION_FOLDER
+    GCS_PRODUCT_INFO_FOLDER
 )
 from config.logger import setup_logger
 from processing.transformer.product_info_transformer import transform_product_info_data
@@ -67,7 +67,7 @@ def run_load_product_to_gcs():
             write_batch_to_gcs(
                 batch=data,
                 collection_name="product_info",
-                gcs_folder=GCS_DESTINATION_FOLDER,
+                gcs_folder=GCS_PRODUCT_INFO_FOLDER,
                 part_idx=parquet_name,
                 transform_func=transform_product_info_data,
                 schema=schema,
