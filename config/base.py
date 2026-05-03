@@ -22,6 +22,7 @@ CRAWLER_SEMAPHORE = int(os.getenv("PRODUCT_CRAWLER_SEMAPHORE", 10))
 CRAWLER_TIMEOUT = int(os.getenv("PRODUCT_CRAWLER_TIMEOUT", 15))
 CRAWLER_MAX_RETRIES = int(os.getenv("PRODUCT_CRAWLER_MAX_RETRIES", 3))
 CRAWLER_HEADERS = json.loads(os.getenv("PRODUCT_CRAWLER_HEADERS", '{}'))
+CRAWLER_UA = "glamira-crawler/1.0"
 
 # Export to GCS
 SUCCESS_DIR = os.getenv("SUCCESS_DIR", "data/product_info/success")

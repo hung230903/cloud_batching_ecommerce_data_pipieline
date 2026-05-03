@@ -14,7 +14,7 @@ from config.base import (
     CRAWLER_TIMEOUT,
     CRAWLER_MAX_RETRIES,
     CRAWLER_HEADERS,
-    CRAWLER_BATCH_SIZE
+    CRAWLER_BATCH_SIZE, CRAWLER_UA
 )
 from config.logger import setup_logger
 from utils.file_saving_utils import (
@@ -26,9 +26,6 @@ from utils.time_utils import format_duration
 from processing.product_info_extractor import extract_product_data
 from utils.checkpoint_utils import get_checkpoint_manager
 
-# Sử dụng UA đơn giản để tăng tốc độ phản hồi từ server
-CRAWLER_UA = "glamira-crawler/1.0"
-
 # Module-level logger
 logger = setup_logger(
     name="product_crawler",
@@ -36,35 +33,44 @@ logger = setup_logger(
     log_file="product_crawler.log",
 )
 
+
 def _get_ordered_urls(urls):
     valid_urls = []
     for u in urls:
+        # Skip url if not string
         if not isinstance(u, str):
             continue
+        # Check url if it http or https url
         parsed = urlparse(u)
         if parsed.scheme in ("http", "https"):
             valid_urls.append(u)
 
     def _score(url):
+        # Evaluate urls
         parsed = urlparse(url)
+        # Get number of params after '?' in url
         num_params = len(parse_qs(parsed.query))
+        # Check the url if it contains 'stage'
         is_stage = 1 if "stage." in parsed.netloc else 0
-        return (is_stage, num_params, len(url))
+        return is_stage, num_params, len(url)
 
     return sorted(valid_urls, key=_score)
+
 
 def get_product_list_from_filter():
     pattern = os.path.join(PID_FILTER_DIR, "product_url_batch_*.json")
     files = sorted(glob.glob(pattern))
 
     products = []
-    for fp in files:
-        with open(fp, "r", encoding="utf-8") as f:
+    for f in files:
+        with open(f, "r", encoding="utf-8") as f:
             products.extend(json.load(f))
 
     return products
 
+
 async def get_product_info(session, product, initialized_domains, failed_domains, semaphore):
+    # Get product id and urls
     pid = str(product["product_id"])
     candidate_urls = _get_ordered_urls(product["urls"])
 
@@ -81,23 +87,24 @@ async def get_product_info(session, product, initialized_domains, failed_domains
         domain = urlparse(url).netloc
         headers["Referer"] = f"https://{domain}/"
 
-        # Bỏ qua nếu domain này đã từng lỗi (rác)
+        # Skip if domain broken
         if domain in failed_domains:
             continue
 
         if domain not in initialized_domains:
             initialized_domains.add(domain)
             try:
-                # Chỉ lock semaphore khi thực sự cần gọi network
                 async with semaphore:
+                    # Get Cookies from homepage for session for each domain
                     async with session.get(
-                        f"https://{domain}/", headers=headers, allow_redirects=True, timeout=10
+                            f"https://{domain}/", headers=headers, allow_redirects=True, timeout=10
                     ) as home_resp:
                         await home_resp.text()
                         logger.info(f"Initialized session for domain: {domain}")
             except Exception as e:
                 logger.warning(f"Failed to initialize domain {domain}: {e}")
                 initialized_domains.discard(domain)
+                # If initialize domains failed -> check it if 'dev', 'test, 'stage' -> ad to failed_domains
                 if any(x in domain for x in ["dev", "test", "stage"]):
                     failed_domains.add(domain)
                 continue
@@ -138,8 +145,8 @@ async def get_product_info(session, product, initialized_domains, failed_domains
 
     return last_status, {"pid": pid, "url": last_url_tried, "all_urls": product.get("urls", [])}
 
+
 async def _crawl_products_async(batch_size):
-    """Hàm chính thực hiện crawl theo lô (batch) tương tự project Tiki, hỗ trợ checkpoint."""
     start_time = time.perf_counter()
 
     products = get_product_list_from_filter()
@@ -151,15 +158,27 @@ async def _crawl_products_async(batch_size):
     success_cnt = 0
     error_cnt = 0
     exception_cnt = 0
-    file_idx = 1
-    
+
     # Checkpoint setup
     checkpoint_manager = get_checkpoint_manager("product_crawler")
-    checkpoint = checkpoint_manager.get_checkpoint()
-    start_index = int(checkpoint) if checkpoint else 0
+    checkpoint_data = checkpoint_manager.get_checkpoint()
+
+    start_index = 0
+    file_idx = 1
+
+    if isinstance(checkpoint_data, dict):
+        start_index = checkpoint_data.get("start_index", 0)
+        file_idx = checkpoint_data.get("file_idx", 1)
+    elif isinstance(checkpoint_data, (str, int)):
+        try:
+            start_index = int(checkpoint_data)
+        except:
+            start_index = 0
+            raise
 
     os.makedirs(PRODUCT_INFO_DIR, exist_ok=True)
-    logger.info(f"JOB START | CRAWLING {len(products)} products from Glamira PID Filter")
+    logger.info(
+        f"JOB START | CRAWLING {len(products)} products from Glamira PID Filter | Resuming from index {start_index}, file_idx {file_idx}")
 
     semaphore = asyncio.Semaphore(CRAWLER_SEMAPHORE)
     connector = aiohttp.TCPConnector(limit_per_host=CRAWLER_SEMAPHORE)
@@ -170,7 +189,7 @@ async def _crawl_products_async(batch_size):
         failed_domains = set()
 
         for i in range(start_index, len(products), batch_size):
-            batch = products[i : i + batch_size]
+            batch = products[i: i + batch_size]
             tasks = [
                 get_product_info(session, p, initialized_domains, failed_domains, semaphore)
                 for p in batch
@@ -193,10 +212,12 @@ async def _crawl_products_async(batch_size):
                     save_exception_data_to_files(status, result, logger)  # result here is pid
                     exception_cnt += 1
 
-            # Cập nhật checkpoint sau mỗi batch hoàn tất
-            checkpoint_manager.save_checkpoint(min(i + batch_size, len(products)))
+            # Update checkpoint
+            checkpoint_manager.save_checkpoint({
+                "start_index": min(i + batch_size, len(products)),
+                "file_idx": file_idx
+            })
 
-    # Lưu phần còn lại sau khi hết vòng lặp
     if success_products:
         save_success_data_to_files(file_idx, success_products, logger)
 
@@ -208,9 +229,10 @@ async def _crawl_products_async(batch_size):
         f"| TIME: {format_duration(total_time)}"
     )
 
+
 def run_product_crawler(batch_size=CRAWLER_BATCH_SIZE):
-    """Chạy crawler (đồng bộ) thông qua asyncio.run()."""
     asyncio.run(_crawl_products_async(batch_size))
+
 
 if __name__ == "__main__":
     run_product_crawler()

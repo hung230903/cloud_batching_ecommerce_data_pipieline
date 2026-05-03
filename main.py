@@ -3,7 +3,7 @@ from config.base import CRAWLER_BATCH_SIZE
 from extract.pid_filter import run_pid_filter
 from extract.product_crawler import run_product_crawler
 from loaders.load_ip_to_mongo import run_ip_to_location as run_ip_transform
-from loaders.load_summary_to_gcs import export_to_gcs
+from loaders.main_export import export_all
 from loaders.gcs_to_bq import run_load as bq_load
 
 # Setup logging
@@ -28,7 +28,7 @@ def step_product_crawler():
 def step_export_to_gcs():
     """BƯỚC 4: Export toàn bộ dữ liệu (Summary, IP2Location, Product Info) lên GCS."""
     logger.info("--- STAGE 4: EXPORT ALL TO GCS ---")
-    export_to_gcs()
+    export_all()
 
 def step_bigquery_load():
     """BƯỚC 5: Nạp dữ liệu từ GCS vào BigQuery."""

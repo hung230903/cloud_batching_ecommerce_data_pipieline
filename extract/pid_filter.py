@@ -9,6 +9,7 @@ from config.base import (
 )
 from config.logger import setup_logger
 from utils import time_utils
+from utils.checkpoint_utils import get_checkpoint_manager
 from utils.file_saving_utils import save_json_batch
 
 # Global logger for the module
@@ -18,7 +19,7 @@ logger = setup_logger(
     log_file="pid_filter.log",
 )
 
-def _build_pipeline():
+def _build_pipeline(last_pid=None):
     """Build the aggregation pipeline.
 
     1. Match documents from product-related event collections.
@@ -28,6 +29,14 @@ def _build_pipeline():
     5. Sort by product_id so all URLs for the same product arrive
        consecutively — this allows streaming grouping in Python.
     """
+    match_stage = {
+        "product_id": {"$ne": None},
+        "url": {"$ne": None},
+    }
+    
+    if last_pid is not None:
+        match_stage["product_id"] = {"$gt": last_pid}
+
     return [
         {
             "$match": {
@@ -53,10 +62,7 @@ def _build_pipeline():
             }
         },
         {
-            "$match": {
-                "product_id": {"$ne": None},
-                "url": {"$ne": None},
-            }
+            "$match": match_stage
         },
         {
             "$group": {
@@ -101,7 +107,22 @@ def run_pid_filter(
         db = client[mongo_db]
         collection = db[source_collection]
 
-        pipeline = _build_pipeline()
+        checkpoint_manager = get_checkpoint_manager("pid_filter")
+        checkpoint_data = checkpoint_manager.get_checkpoint()
+        
+        last_pid = None
+        file_counter = 1
+        total_products = 0
+
+        if isinstance(checkpoint_data, dict):
+            last_pid = checkpoint_data.get("last_pid")
+            file_counter = checkpoint_data.get("file_idx", 1)
+            total_products = checkpoint_data.get("processed_count", 0)
+
+        if total_products > 0:
+            logger.info(f"Resuming from checkpoint | File idx: {file_counter} | Processed: {total_products}")
+
+        pipeline = _build_pipeline(last_pid=last_pid)
         cursor = collection.aggregate(
             pipeline,
             allowDiskUse=True,
@@ -109,8 +130,6 @@ def run_pid_filter(
         )
 
         batch = []
-        file_counter = 1
-        total_products = 0
 
         current_pid = None
         current_urls = []
@@ -130,6 +149,13 @@ def run_pid_filter(
 
                     if len(batch) >= batch_size:
                         _write_batch(batch, file_counter, output_dir, output_prefix)
+                        
+                        checkpoint_manager.save_checkpoint({
+                            "last_pid": current_pid,
+                            "file_idx": file_counter + 1,
+                            "processed_count": total_products
+                        })
+                        
                         batch.clear()
                         file_counter += 1
 
@@ -149,6 +175,11 @@ def run_pid_filter(
         # Save remaining records
         if batch:
             _write_batch(batch, file_counter, output_dir, output_prefix)
+            checkpoint_manager.save_checkpoint({
+                "last_pid": current_pid,
+                "file_idx": file_counter + 1,
+                "processed_count": total_products
+            })
 
         total_time = time.perf_counter() - start_time
         total_time_formatted = time_utils.format_duration(total_time)

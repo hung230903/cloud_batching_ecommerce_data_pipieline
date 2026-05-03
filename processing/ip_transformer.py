@@ -6,12 +6,12 @@ _ip2loc = None
 
 def lookup_ip(ip):
     """
-    Convert a single IP address to a location dict using IP2Location.
-    This function is designed to be used in a multiprocessing environment.
+    Convert a single IP address to a location dict using IP2Location
+    This function is designed to be used in a linux multiprocessing
     """
     global _ip2loc
     if _ip2loc is None:
-        # Khởi tạo instance duy nhất cho mỗi process worker
+        # Initialize single instance for each worker process
         _ip2loc = IP2Location.IP2Location(IP2LOCATION_DB)
     
     record = _ip2loc.get_all(ip)

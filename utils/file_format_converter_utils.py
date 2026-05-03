@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 
 def convert_json_to_parquet(json_file_path, transform_func=None, schema=None):
-    """JSON -> Parquet."""
+    """JSON -> Parquet"""
     try:
         logger.info(f"Converting JSON to Parquet: {json_file_path}")
         df = pd.read_json(json_file_path)
@@ -26,7 +26,7 @@ def convert_json_to_parquet(json_file_path, transform_func=None, schema=None):
 
 
 def convert_bson_to_parquet(bson_file_path, batch_size=50000, transform_func=None, schema=None):
-    """BSON -> Parquet with detailed progress logging."""
+    """BSON -> Parquet"""
     try:
         logger.info(f"Opening BSON file: {bson_file_path}...")
         parquet_buffer = io.BytesIO()
@@ -41,7 +41,6 @@ def convert_bson_to_parquet(bson_file_path, batch_size=50000, transform_func=Non
                 if '_id' in doc: del doc['_id']
                 current_batch.append(doc)
 
-                # Log progress every 100k records
                 if total_count % 100000 == 0:
                     logger.info(f"Already read: {total_count:,} records...")
 
@@ -67,7 +66,6 @@ def convert_bson_to_parquet(bson_file_path, batch_size=50000, transform_func=Non
                     writer.write_table(table)
                     current_batch = []
 
-            # Final batch
             if current_batch:
                 df_batch = pd.DataFrame(current_batch)
                 if transform_func:

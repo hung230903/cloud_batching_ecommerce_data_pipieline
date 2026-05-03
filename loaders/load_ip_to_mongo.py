@@ -5,9 +5,6 @@ from pymongo import MongoClient, UpdateOne
 from concurrent.futures import ProcessPoolExecutor
 from itertools import islice
 
-# Thêm root path để có thể import từ config
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
 from config.base import (
     IP2LOCATION_DIR, IP2LOCATION_BATCH_SIZE,
     MONGO_URI, MONGO_DB, SUMMARY_COLLECTION, IP_COLLECTION
@@ -18,7 +15,10 @@ from utils.file_saving_utils import save_json_batch
 from processing.ip_transformer import lookup_ip
 from utils.checkpoint_utils import get_checkpoint_manager
 
-# Module-level logger
+# Add root path
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+# logger
 logger = setup_logger(
     name="ip_to_location",
     log_folder="loaders",
@@ -29,15 +29,13 @@ UNIQUE_IPS_FILE = os.path.join(IP2LOCATION_DIR, "extracted_unique_ips.txt")
 
 
 def _collect_unique_ips_to_file(summary_col):
-    """Phase 1: Extract all unique IPs from MongoDB directly to a text file.
-    
-    This ensures a deterministic order for our checkpointing system.
-    """
+    # PHASE 1: Extract all unique IPs from Mongo to a text file
     phase1_start = time.perf_counter()
     logger.info("PHASE 1 START | Extracting unique IPs from MongoDB to file")
 
     os.makedirs(IP2LOCATION_DIR, exist_ok=True)
 
+    # Get IPs with batch=100k
     pipeline = [{"$group": {"_id": "$ip"}}]
     cursor = summary_col.aggregate(
         pipeline,
@@ -45,6 +43,7 @@ def _collect_unique_ips_to_file(summary_col):
         batchSize=100_000,
     )
 
+    # Write IPs for each batch to file
     ip_count = 0
     with open(UNIQUE_IPS_FILE, "w", encoding="utf-8") as f:
         for doc in cursor:
@@ -62,10 +61,11 @@ def _collect_unique_ips_to_file(summary_col):
 
 
 def _write_batch(output_col, mongo_batch, json_batch, file_idx):
-    """Write a batch of results to MongoDB and a JSON file."""
+    # Write data batch to mongo and JSON files
     if not mongo_batch:
         return
 
+    # Write data to mongo
     result = output_col.bulk_write(mongo_batch, ordered=False)
     logger.info(
         f"Batch {file_idx} MongoDB completed: "
@@ -73,36 +73,54 @@ def _write_batch(output_col, mongo_batch, json_batch, file_idx):
         f"Upserted: {result.upserted_count}"
     )
 
+    # Write data to JSON file
     filename = f"ip_location_batch_{file_idx}.json"
     save_json_batch(data=json_batch, directory=IP2LOCATION_DIR, filename=filename, logger=logger)
 
 
 def _ip_generator(filepath, skip_count=0):
-    """Yield IPs from the file, skipping the first `skip_count` IPs."""
+    # Checkpoint helper
+    # Yield IPs from text file, skipping the first `skip_count` IPs
     with open(filepath, "r", encoding="utf-8") as f:
+        # islice func help to skip 'skip_count' IPs very fast
         for line in islice(f, skip_count, None):
             yield line.strip()
 
 
 def _process_ips(output_col, checkpoint_manager, batch_size, workers):
-    """Phase 2: Process unique IPs from the flat file using multiprocessing."""
+    # Phase 2: Process unique IPs from the text file using multiprocessing
     phase2_start = time.perf_counter()
 
-    checkpoint = int(checkpoint_manager.get_checkpoint() or 0)
-    logger.info(f"PHASE 2 START | Processing IPs from file (Skipping {checkpoint} IPs)")
+    checkpoint_data = checkpoint_manager.get_checkpoint()
 
-    # 1. Generator streaming from file
+    checkpoint = 0
+    file_idx = 1
+
+    if isinstance(checkpoint_data, dict):
+        checkpoint = checkpoint_data.get("ip_processed_count", 0)
+        file_idx = checkpoint_data.get("file_idx", 1)
+    elif isinstance(checkpoint_data, (str, int)):
+        try:
+            checkpoint = int(checkpoint_data)
+            file_idx = (checkpoint // batch_size) + 1
+        except:
+            checkpoint = 0
+            raise
+
+    logger.info(f"PHASE 2 START | Processing IPs from file (Skipping {checkpoint} IPs, start file_idx {file_idx})")
+
+    # Get IPs stream from text file
     ip_stream = _ip_generator(UNIQUE_IPS_FILE, skip_count=checkpoint)
 
-    # 2. Process via ProcessPoolExecutor
+    # Initialize multiprocessing
     with ProcessPoolExecutor(max_workers=workers) as executor:
         mongo_data = []
         json_data = []
         ip_cnt = 0
-        file_idx = (checkpoint // batch_size) + 1  # Offset file index based on checkpoint
 
-        # executor.map consumes the generator efficiently with chunksize
+        # Interate IPs from ip_stream to lookup_ip func
         for result in executor.map(lookup_ip, ip_stream, chunksize=1000):
+            # Use UpdateOne func because bulk_write only get output(Object) from it
             mongo_data.append(
                 UpdateOne(
                     {"ip": result["ip"]},
@@ -117,8 +135,11 @@ def _process_ips(output_col, checkpoint_manager, batch_size, workers):
                 _write_batch(output_col, mongo_data, json_data, file_idx)
 
                 # Update checkpoint
-                curr_ckpt = int(checkpoint_manager.get_checkpoint() or 0)
-                checkpoint_manager.save_checkpoint(curr_ckpt + len(mongo_data))
+                checkpoint += len(mongo_data)
+                checkpoint_manager.save_checkpoint({
+                    "ip_processed_count": checkpoint,
+                    "file_idx": file_idx + 1
+                })
 
                 mongo_data.clear()
                 json_data.clear()
@@ -126,8 +147,11 @@ def _process_ips(output_col, checkpoint_manager, batch_size, workers):
 
         if mongo_data:
             _write_batch(output_col, mongo_data, json_data, file_idx)
-            curr_ckpt = int(checkpoint_manager.get_checkpoint() or 0)
-            checkpoint_manager.save_checkpoint(curr_ckpt + len(mongo_data))
+            checkpoint += len(mongo_data)
+            checkpoint_manager.save_checkpoint({
+                "ip_processed_count": checkpoint,
+                "file_idx": file_idx
+            })
 
     phase2_time = time.perf_counter() - phase2_start
     logger.info(
@@ -145,9 +169,9 @@ def run_ip_to_location(
         batch_size=IP2LOCATION_BATCH_SIZE,
         workers=10,
 ):
-    """Execute the IP-to-location transformation pipeline in two phases.
-    
-    Phase 1: Collect unique IPs to a flat file to ensure deterministic order.
+    """
+    Execute the IP-to-location transformation pipeline in two phases.
+    Phase 1: Collect unique IPs to a text file to ensure deterministic order.
     Phase 2: Stream IPs from the file, process them in multiprocessing mode.
     """
     start_time = time.perf_counter()
@@ -161,7 +185,16 @@ def run_ip_to_location(
         output_col.create_index("ip", unique=True)
 
         checkpoint_manager = get_checkpoint_manager("ip_to_location")
-        checkpoint = int(checkpoint_manager.get_checkpoint() or 0)
+        checkpoint_data = checkpoint_manager.get_checkpoint()
+
+        if isinstance(checkpoint_data, dict):
+            checkpoint = checkpoint_data.get("ip_processed_count", 0)
+        else:
+            try:
+                checkpoint = int(checkpoint_data or 0)
+            except:
+                checkpoint = 0
+                raise
 
         # Check if we should run Phase 1
         # If checkpoint exists (> 0), Phase 1 is skipped to preserve the order in file

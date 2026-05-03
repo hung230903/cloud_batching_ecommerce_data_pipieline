@@ -56,10 +56,10 @@ def run_load():
     client = bigquery.Client(project=BQ_PROJECT_ID)
     
     # Summary
-    # load_parquet_from_gcs(client, GCS_BUCKET_NAME, GCS_SUMMARY_FOLDER, BQ_TABLE_SUMMARY)
+    load_parquet_from_gcs(client, GCS_BUCKET_NAME, GCS_SUMMARY_FOLDER, BQ_TABLE_SUMMARY)
     
     # IP Location
-    # load_parquet_from_gcs(client, GCS_BUCKET_NAME, GCS_IP2LOCATION_FOLDER, BQ_TABLE_IP2LOCATION)
+    load_parquet_from_gcs(client, GCS_BUCKET_NAME, GCS_IP2LOCATION_FOLDER, BQ_TABLE_IP2LOCATION)
     
     # Product Info
     load_parquet_from_gcs(client, GCS_BUCKET_NAME, GCS_DESTINATION_FOLDER, BQ_TABLE_PRODUCT_INFO)
