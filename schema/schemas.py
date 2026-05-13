@@ -1,12 +1,13 @@
 import pyarrow as pa
 
+
 def get_summary_pyarrow_schema():
     """
     Định nghĩa Schema chuẩn của PyArrow để ép file Parquet có cấu trúc RECORD và REPEATED khớp với BigQuery.
     """
     option_fields = [
-        pa.field("option_label", pa.string()),
         pa.field("option_id", pa.string()),
+        pa.field("option_label", pa.string()),
         pa.field("value_label", pa.string()),
         pa.field("value_id", pa.string()),
         pa.field("quality", pa.string()),
@@ -73,6 +74,7 @@ def get_summary_pyarrow_schema():
     ])
     return schema
 
+
 def get_ip2location_pyarrow_schema():
     """
     Định nghĩa Schema chuẩn của PyArrow cho ip2location, khớp với BigQuery.
@@ -86,6 +88,7 @@ def get_ip2location_pyarrow_schema():
         ("longitude", pa.float64()),
     ])
     return schema
+
 
 def get_product_info_pyarrow_schema():
     """
@@ -125,7 +128,7 @@ def get_product_info_pyarrow_schema():
         pa.field("label", pa.string()),
         pa.field("price", pa.string()),
     ]
-    
+
     # Cấu trúc đặc thù cho stone_quality có thêm quality_origins lồng bên trong
     stone_quality_item_fields = stone_data_item_fields + [
         pa.field("quality_origins", pa.list_(pa.struct(stone_data_item_fields)))
@@ -141,7 +144,7 @@ def get_product_info_pyarrow_schema():
         pa.field("is_feature", pa.bool_()),
         pa.field("is_video", pa.bool_()),
         pa.field("area_view", pa.string()),
-        pa.field("config", pa.string()), # JSON string if complex
+        pa.field("config", pa.string()),  # JSON string if complex
         pa.field("watermark", pa.string()),
         pa.field("meta", pa.string()),
         pa.field("large_image_url", pa.string()),
@@ -151,7 +154,7 @@ def get_product_info_pyarrow_schema():
         pa.field("sticky_image_url", pa.string()),
         pa.field("placeholder_alt", pa.string()),
     ]
-    
+
     image_view_type_fields = [
         pa.field("type", pa.string()),
         pa.field("position", pa.int64()),
@@ -203,14 +206,14 @@ def get_product_info_pyarrow_schema():
         pa.field("price_type", pa.string()),
         pa.field("is_default", pa.bool_()),
     ]
-    
+
     colour_fields = common_option_fields + [
         pa.field("colour_code", pa.string()),
         pa.field("metal", pa.string()),
         pa.field("colour_label", pa.string()),
         pa.field("metal_label", pa.string()),
     ]
-    
+
     stone_fields = common_option_fields + [
         pa.field("stone_group", pa.string()),
         pa.field("configure_quality", pa.string()),
@@ -221,7 +224,7 @@ def get_product_info_pyarrow_schema():
     ]
 
     schema = pa.schema([
-        ("product_id", pa.int64()), # ID dạng số trong JSON
+        ("product_id", pa.int64()),  # ID dạng số trong JSON
         ("product_name", pa.string()),
         ("sku", pa.string()),
         ("attribute_set_id", pa.int64()),
@@ -241,7 +244,7 @@ def get_product_info_pyarrow_schema():
         ("category_name", pa.string()),
         ("store_id", pa.string()),
         ("gender", pa.string()),
-        
+
         # Nested Structures
         ("media_image", pa.struct(media_image_fields)),
         ("media_video", pa.struct(media_video_fields)),

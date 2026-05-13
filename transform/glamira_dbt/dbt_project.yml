@@ -22,7 +22,7 @@ models:
   glamira_dbt:
     staging:
       +schema: glamira_staging
-      +materialized: view
+      +materialized: view 
       +tags: ["staging"]
     intermediate:
       +schema: glamira_intermediate

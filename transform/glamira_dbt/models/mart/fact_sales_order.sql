@@ -61,40 +61,11 @@ fact_sales_order_with_location AS (
 -- Normalize currency using static approximate exchange rates to USD
 fact_sales_order_with_currency AS (
     SELECT
-        *,
-        CASE TRIM(currency)
-            WHEN '€' THEN 1.08
-            WHEN '£' THEN 1.25
-            WHEN 'kr' THEN 0.10
-            WHEN '$' THEN 1.00
-            WHEN 'USD $' THEN 1.00
-            WHEN 'CHF' THEN 1.10
-            WHEN 'AU $' THEN 0.65
-            WHEN 'CAD $' THEN 0.74
-            WHEN 'Kč' THEN 0.043
-            WHEN 'Ft' THEN 0.0028
-            WHEN 'zł' THEN 0.25
-            WHEN 'MXN $' THEN 0.059
-            WHEN 'SGD $' THEN 0.74
-            WHEN 'CLP' THEN 0.0011
-            WHEN 'лв.' THEN 0.55
-            WHEN 'kn' THEN 0.14
-            WHEN 'NZD $' THEN 0.60
-            WHEN '₺' THEN 0.035
-            WHEN 'COP $' THEN 0.00025
-            WHEN 'PEN S/.' THEN 0.27
-            WHEN '₱' THEN 0.018
-            WHEN 'din.' THEN 0.009
-            WHEN '₫' THEN 0.00004
-            WHEN 'HKD $' THEN 0.13
-            WHEN 'Lei' THEN 0.22
-            WHEN 'GTQ Q' THEN 0.13
-            WHEN 'CRC ₡' THEN 0.002
-            WHEN '￥' THEN 0.0067
-            WHEN '₹' THEN 0.012
-            ELSE 1.00 -- Default fallback
-        END AS exchange_rate_to_usd
-    FROM fact_sales_order_with_location
+        f.*,
+        COALESCE(c.exchange_rate_to_usd, 1.00) AS exchange_rate_to_usd
+    FROM fact_sales_order_with_location f
+    LEFT JOIN {{ ref('dim_currency') }} c
+        ON TRIM(f.currency) = c.currency_code
 )
 
 SELECT
@@ -122,6 +93,34 @@ SELECT
     stone_id,
     colour_id,
     metal_id,
-    user_id_db
+    user_id_db,
+
+    -- Device info (degenerate dimensions — parsed from user_agent)
+    device_id,
+    CASE
+        WHEN REGEXP_CONTAINS(LOWER(user_agent), r'(ipad|tablet|kindle|silk|playbook)')
+            THEN 'Tablet'
+        WHEN REGEXP_CONTAINS(LOWER(user_agent), r'(mobile|iphone|ipod|android.*mobile|opera\s*m)')
+            THEN 'Mobile'
+        ELSE 'Desktop'
+    END                                     AS device_category,
+    CASE
+        WHEN REGEXP_CONTAINS(user_agent, r'Edg/')       THEN 'Edge'
+        WHEN REGEXP_CONTAINS(user_agent, r'OPR/')        THEN 'Opera'
+        WHEN REGEXP_CONTAINS(user_agent, r'Chrome/')     THEN 'Chrome'
+        WHEN REGEXP_CONTAINS(user_agent, r'Safari/')
+         AND NOT REGEXP_CONTAINS(user_agent, r'Chrome/') THEN 'Safari'
+        WHEN REGEXP_CONTAINS(user_agent, r'Firefox/')    THEN 'Firefox'
+        ELSE 'Other'
+    END                                     AS browser_family,
+    CASE
+        WHEN REGEXP_CONTAINS(user_agent, r'Windows')     THEN 'Windows'
+        WHEN REGEXP_CONTAINS(user_agent, r'Macintosh')   THEN 'macOS'
+        WHEN REGEXP_CONTAINS(user_agent, r'iPhone|iPad') THEN 'iOS'
+        WHEN REGEXP_CONTAINS(user_agent, r'Android')     THEN 'Android'
+        WHEN REGEXP_CONTAINS(user_agent, r'Linux')       THEN 'Linux'
+        ELSE 'Other'
+    END                                     AS os_family
 
 FROM fact_sales_order_with_currency
+
