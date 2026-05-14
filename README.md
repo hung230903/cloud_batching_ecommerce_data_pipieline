@@ -116,6 +116,8 @@ for seamless data ingestion.
 │   ├── file_saving_utils.py   # JSON/Parquet file handlers
 │   ├── time_utils.py          # Time formatting utilities
 │   ├── field_extractor_utils.py # Nested field extraction helpers
+├── data/                      # Local data cache (JSON/BSON/Parquet)
+├── logs/                      # Execution and error logs
 ├── data_dictionary/           # Data profiling & metadata docs
 ├── checkpoint/                # Pipeline state for resumable jobs
 ├── dashboard.py               # Streamlit-based analytics dashboard
@@ -144,9 +146,27 @@ for seamless data ingestion.
 ### 🏗 Enterprise Data Modeling
 
 - **Medallion Architecture**: Clear separation between `raw`, `intermediate`, and `mart` layers.
+    - **Intermediate Layer**: Processes complex JSON arrays into relational structures (e.g., `int_checkout_events`, `int_colour_options`, `int_stone_options`).
 - **SCD Type 2 Tracking**: Historical versioning for the `dim_customer` dimension ensures accurate point-in-time
   analysis.
 - **Star Schema**: Highly optimized for BI tools and complex analytical queries.
+
+---
+
+## 📈 Analytics Dashboard (Streamlit)
+
+The project includes a high-performance **Streamlit** dashboard for real-time data visualization:
+
+- **Key Metrics**: Total sales, currency-wise revenue, and product interaction counts.
+- **Geographic Insights**: Heatmaps showing user activity and sales by country (powered by `dim_location`).
+- **Product Trends**: Analytics on popular colors, metals, and stone types.
+- **Interactive Filtering**: Filter data by date ranges, store locations, and product categories.
+
+To run the dashboard:
+```bash
+streamlit run dashboard.py
+```
+
 
 ---
 
@@ -156,9 +176,13 @@ The transformation layer builds a robust Star Schema within BigQuery:
 
 - **Fact Tables**: `fact_sales_order` (sales transactions and product interactions).
 - **Dimension Tables**:
-    - `dim_product`, `dim_customer` (**SCD Type 2**), `dim_location`.
+    - `dim_product`, `dim_customer` (**SCD Type 2**), `dim_location`, `dim_currency`.
     - `dim_colour`, `dim_metal`, `dim_stone`, `dim_store`.
     - `dim_date` (Standardized time analysis).
+- **Intermediate Tables**:
+    - `int_checkout_events`: Flattens complex checkout log arrays.
+    - `int_colour_options` & `int_stone_options`: Normalizes product attributes for the Star Schema.
+
 
 ---
 
@@ -227,9 +251,13 @@ gcloud functions deploy gcs_to_bq \
 
 ## 📊 Monitoring
 
-- **Integrated Logging**: Centralized logger in `config/logger.py` tracks all stages.
-- **dbt tests**: automated validation of primary keys, relationships, and data types.
-- **Checkpointing**: Uses local checkpoints to resume failed extraction jobs from the last successful record.
+- **Integrated Logging**: Centralized logger in `config/logger.py` tracks all stages from extraction to GCS upload.
+- **dbt Data Quality Tests**: 
+    - Automated validation of primary keys and relationships.
+    - Custom business logic tests (e.g., `assert_fact_sales_amount_non_negative`, `assert_dim_location_no_unknown_country`).
+- **End-to-End Integration Tests**: The `monitoring/e2e_test.py` script validates the full data flow from raw extraction to BigQuery availability.
+- **Checkpointing**: Uses local state management in `checkpoint/` to resume failed jobs from the exact last successful record, ensuring no data loss or duplication.
+
 
 ---
 
