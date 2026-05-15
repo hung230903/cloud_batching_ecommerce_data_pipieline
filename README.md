@@ -23,7 +23,7 @@ process, and analyze data from the Glamira e-commerce platform. The project impl
 
 ## Project Flow Diagram Overview
 
-<img src="./gvto.drawio.svg"/>
+<img src="images/gvto.drawio.svg"/>
 
 ---
 
@@ -187,6 +187,10 @@ The transformation layer builds a robust Star Schema within BigQuery:
 - **Intermediate Tables**:
     - `int_checkout_events`: Flattens complex checkout log arrays.
     - `int_colour_options` & `int_stone_options`: Normalizes product attributes for the Star Schema.
+
+### 🗄️ Schema Design
+
+<img src="images/glamira-dw-design.png" alt="Glamira Data Warehouse Schema Design"/>
 
 ---
 
