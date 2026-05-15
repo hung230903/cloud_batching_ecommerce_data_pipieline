@@ -3,7 +3,7 @@ from google.cloud import bigquery
 import pandas as pd
 import plotly.express as px
 
-from config.base import BQ_PROJECT_ID, BQ_DATASET_ID
+from config.base import BQ_PROJECT_ID, BQ_MART_DATASET_ID
 
 
 # Initialize BigQuery client
@@ -31,7 +31,7 @@ try:
             SUM(amount_usd) as total_revenue,
             AVG(amount_usd) as average_order_value,
             COUNT(DISTINCT order_id) as total_orders
-        FROM `{BQ_PROJECT_ID}.{BQ_DATASET_ID}.fact_sales_order`
+        FROM `{BQ_PROJECT_ID}.{BQ_MART_DATASET_ID}.fact_sales_order`
     """
     rev_data = run_query(rev_query)
     
@@ -53,8 +53,8 @@ try:
         SELECT 
             d.full_date,
             SUM(f.amount_usd) as daily_revenue
-        FROM `{BQ_PROJECT_ID}.{BQ_DATASET_ID}.fact_sales_order` f
-        JOIN `{BQ_PROJECT_ID}.{BQ_DATASET_ID}.dim_date` d ON f.date_id = d.date_id
+        FROM `{BQ_PROJECT_ID}.{BQ_MART_DATASET_ID}.fact_sales_order` f
+        JOIN `{BQ_PROJECT_ID}.{BQ_MART_DATASET_ID}.dim_date` d ON f.date_id = d.date_id
         GROUP BY 1
         ORDER BY full_date
     """
@@ -80,8 +80,8 @@ try:
             SELECT 
                 l.country_long as country,
                 SUM(f.amount) as revenue
-            FROM `{BQ_PROJECT_ID}.{BQ_DATASET_ID}.fact_sales_order` f
-            JOIN `{BQ_PROJECT_ID}.{BQ_DATASET_ID}.dim_location` l ON f.location_id = cast(l.ip_address_int as string)
+            FROM `{BQ_PROJECT_ID}.{BQ_MART_DATASET_ID}.fact_sales_order` f
+            JOIN `{BQ_PROJECT_ID}.{BQ_MART_DATASET_ID}.dim_location` l ON f.location_id = cast(l.ip_address_int as string)
             GROUP BY 1
             ORDER BY revenue DESC
             LIMIT 10
@@ -92,8 +92,8 @@ try:
             SELECT 
                 l.country_long as country,
                 SUM(f.amount_usd) as revenue
-            FROM `{BQ_PROJECT_ID}.{BQ_DATASET_ID}.fact_sales_order` f
-            JOIN `{BQ_PROJECT_ID}.{BQ_DATASET_ID}.dim_location` l ON f.location_id = l.location_id
+            FROM `{BQ_PROJECT_ID}.{BQ_MART_DATASET_ID}.fact_sales_order` f
+            JOIN `{BQ_PROJECT_ID}.{BQ_MART_DATASET_ID}.dim_location` l ON f.location_id = l.location_id
             GROUP BY 1
             ORDER BY revenue DESC
             LIMIT 10
@@ -115,8 +115,8 @@ try:
             SELECT 
                 p.product_name,
                 SUM(f.amount_usd) as revenue
-            FROM `{BQ_PROJECT_ID}.{BQ_DATASET_ID}.fact_sales_order` f
-            JOIN `{BQ_PROJECT_ID}.{BQ_DATASET_ID}.dim_product` p ON f.product_id = p.product_id
+            FROM `{BQ_PROJECT_ID}.{BQ_MART_DATASET_ID}.fact_sales_order` f
+            JOIN `{BQ_PROJECT_ID}.{BQ_MART_DATASET_ID}.dim_product` p ON f.product_id = p.product_id
             GROUP BY 1
             ORDER BY revenue DESC
             LIMIT 10
@@ -134,7 +134,7 @@ try:
 
     # Optional: Tabular detail view
     with st.expander("View Raw Fact Table Samples"):
-        sample_query = f"SELECT * FROM `{BQ_PROJECT_ID}.{BQ_DATASET_ID}.fact_sales_order` LIMIT 100"
+        sample_query = f"SELECT * FROM `{BQ_PROJECT_ID}.{BQ_MART_DATASET_ID}.fact_sales_order` LIMIT 100"
         st.dataframe(run_query(sample_query))
 
 except Exception as e:

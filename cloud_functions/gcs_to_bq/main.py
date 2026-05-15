@@ -54,7 +54,7 @@ def trigger_bigquery_load(event, context):
             bigquery.SchemaUpdateOption.ALLOW_FIELD_ADDITION,
         ],
         # any schema changes will be automatically handled
-        autodetect=True, 
+        autodetect=False, 
     )
 
     uri = f"gs://{bucket_name}/{file_path}"

@@ -1,8 +1,8 @@
 # 💎 Glamira Data Engineering Project - E-commerce Analytics
 
 An end-to-end data engineering pipeline built with **Python**, **dbt**, and **Google Cloud Platform (GCP)** to collect,
-process, and analyze data from the Glamira e-commerce platform. The project implements a modern data stack with a *
-*Medallion Architecture** in BigQuery and **Event-Driven Automation**.
+process, and analyze data from the Glamira e-commerce platform. The project implements a modern data stack with a \*
+\*Medallion Architecture** in BigQuery and **Event-Driven Automation\*\*.
 
 ---
 
@@ -33,7 +33,7 @@ The pipeline is organized into modular stages, combining manual/scheduled extrac
 for seamless data ingestion.
 
 | Stage                        | Description                                                                                       | Orchestration       |
-|:-----------------------------|:--------------------------------------------------------------------------------------------------|:--------------------|
+| :--------------------------- | :------------------------------------------------------------------------------------------------ | :------------------ |
 | **Stage 1: IP to Location**  | Enrich raw user IP addresses into geographic data using IP2Location LITE DB.                      | Manual/Local        |
 | **Stage 2: PID Filter**      | Filters Product IDs (PIDs) and all associated Product URLs for crawling.                          | Manual/Local        |
 | **Stage 3: Product Crawler** | Asynchronous high-performance crawling for product info enrichment.                               | Manual/Local        |
@@ -45,15 +45,15 @@ for seamless data ingestion.
 
 1. Data is exported as `.parquet` files to specific GCS folders.
 2. A **Google Cloud Function** detects the upload event.
-3. The function triggers a **BigQuery Load Job** with `WRITE_APPEND` and schema auto-detection.
-4. Data is immediately available in the `raw` layer for dbt transformations.
+3. The function (and local loaders) triggers a **BigQuery Load Job** using `WRITE_APPEND` combined with **Time Partitioning** (TTL 30 days) for optimal Raw layer storage.
+4. Data is immediately available in the `raw` layer for dbt transformations without relying on risky schema auto-detection.
 
 ---
 
 ## 🛠 Tech Stack
 
 | Category                  | Technology                           |
-|:--------------------------|:-------------------------------------|
+| :------------------------ | :----------------------------------- |
 | **Language**              | Python 3.13+                         |
 | **Data Orchestration**    | Custom Python Runner (`main.py`)     |
 | **Automation**            | Google Cloud Functions (Python 3.11) |
@@ -146,10 +146,10 @@ for seamless data ingestion.
 ### 🏗 Enterprise Data Modeling
 
 - **Medallion Architecture**: Clear separation between `raw`, `intermediate`, and `mart` layers.
-    - **Intermediate Layer**: Processes complex JSON arrays into relational structures (e.g., `int_checkout_events`, `int_colour_options`, `int_stone_options`).
+  - **Intermediate Layer**: Processes complex JSON arrays into relational structures (e.g., `int_checkout_events`, `int_colour_options`, `int_stone_options`).
 - **SCD Type 2 Tracking**: Historical versioning for the `dim_customer` dimension ensures accurate point-in-time
   analysis.
-- **Star Schema**: Highly optimized for BI tools and complex analytical queries.
+- **Star Schema**: Highly optimized for BI tools and complex analytical queries. Fact tables utilize `FARM_FINGERPRINT` for **INT64 surrogate keys** and implement `incremental` materialization (Merge strategy) to process large datasets swiftly.
 
 ---
 
@@ -163,10 +163,10 @@ The project includes a high-performance **Streamlit** dashboard for real-time da
 - **Interactive Filtering**: Filter data by date ranges, store locations, and product categories.
 
 To run the dashboard:
+
 ```bash
 streamlit run dashboard.py
 ```
-
 
 ---
 
@@ -176,13 +176,12 @@ The transformation layer builds a robust Star Schema within BigQuery:
 
 - **Fact Tables**: `fact_sales_order` (sales transactions and product interactions).
 - **Dimension Tables**:
-    - `dim_product`, `dim_customer` (**SCD Type 2**), `dim_location`, `dim_currency`.
-    - `dim_colour`, `dim_metal`, `dim_stone`, `dim_store`.
-    - `dim_date` (Standardized time analysis).
+  - `dim_product`, `dim_customer` (**SCD Type 2**), `dim_location`, `dim_currency`.
+  - `dim_colour`, `dim_metal`, `dim_stone`, `dim_store`.
+  - `dim_date` (Standardized time analysis).
 - **Intermediate Tables**:
-    - `int_checkout_events`: Flattens complex checkout log arrays.
-    - `int_colour_options` & `int_stone_options`: Normalizes product attributes for the Star Schema.
-
+  - `int_checkout_events`: Flattens complex checkout log arrays.
+  - `int_colour_options` & `int_stone_options`: Normalizes product attributes for the Star Schema.
 
 ---
 
@@ -191,7 +190,7 @@ The transformation layer builds a robust Star Schema within BigQuery:
 The system uses a `.env` file for secure configuration.
 
 | Key                       | Description                                |
-|:--------------------------|:-------------------------------------------|
+| :------------------------ | :----------------------------------------- |
 | `MONGODB_URI`             | Connection string for the raw data source. |
 | `GCS_BUCKET_NAME`         | Destination bucket for Parquet files.      |
 | `BQ_PROJECT_ID`           | Your Google Cloud Project ID.              |
@@ -225,10 +224,13 @@ python main.py
 
 # Run dbt snapshots (Capture historical changes)
 cd transform/glamira_dbt
-dbt snapshot
+uv run dbt deps
+uv run dbt snapshot
 
 # Run transformations (Build Star Schema)
-dbt run
+uv run dbt run --full-refresh  # First time
+uv run dbt run                 # Subsequent runs
+uv run dbt test
 ```
 
 ---
@@ -252,12 +254,11 @@ gcloud functions deploy gcs_to_bq \
 ## 📊 Monitoring
 
 - **Integrated Logging**: Centralized logger in `config/logger.py` tracks all stages from extraction to GCS upload.
-- **dbt Data Quality Tests**: 
-    - Automated validation of primary keys and relationships.
-    - Custom business logic tests (e.g., `assert_fact_sales_amount_non_negative`, `assert_dim_location_no_unknown_country`).
+- **dbt Data Quality Tests**:
+  - Automated validation of primary keys and relationships.
+  - Custom business logic tests (e.g., `assert_fact_sales_amount_non_negative`, `assert_dim_location_no_unknown_country`).
 - **End-to-End Integration Tests**: The `monitoring/e2e_test.py` script validates the full data flow from raw extraction to BigQuery availability.
 - **Checkpointing**: Uses local state management in `checkpoint/` to resume failed jobs from the exact last successful record, ensuring no data loss or duplication.
-
 
 ---
 

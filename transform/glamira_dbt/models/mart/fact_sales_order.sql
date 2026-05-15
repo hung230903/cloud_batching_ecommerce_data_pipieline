@@ -15,6 +15,7 @@
 {{
   config(
     materialized = 'incremental',
+    incremental_strategy = 'merge',
     unique_key = 'sale_id',
     tags = ['mart', 'fact']
   )

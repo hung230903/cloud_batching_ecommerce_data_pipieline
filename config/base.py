@@ -45,6 +45,7 @@ PRODUCT_EVENT_COLLECTIONS = json.loads(os.getenv("MONGODB_PRODUCT_EVENTS",
 # BigQuery
 BQ_PROJECT_ID = os.getenv("BQ_PROJECT_ID", "your-gcp-project-id")
 BQ_DATASET_ID = os.getenv("BQ_DATASET_ID", "raw_glamira_data")
+BQ_MART_DATASET_ID = os.getenv("BQ_MART_DATASET_ID", "glamira_mart")
 BQ_TABLE_SUMMARY = os.getenv("BQ_TABLE_SUMMARY", "summary")
 BQ_TABLE_IP2LOCATION = os.getenv("BQ_TABLE_IP2LOCATION", "raw_ip2location")
 BQ_TABLE_PRODUCT_INFO = os.getenv("BQ_TABLE_PRODUCT_INFO", "product_info")

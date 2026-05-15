@@ -26,12 +26,17 @@ def load_parquet_from_gcs(client, bucket_name, source_prefix, table_id):
     """Load all Parquet files from a GCS prefix into a BigQuery table."""
     table_ref = f"{BQ_PROJECT_ID}.{BQ_DATASET_ID}.{table_id}"
 
-    # Cấu hình Load Job: Định dạng PARQUET và ghi đè (hoặc nối vào tùy nhu cầu)
+    # Cấu hình Load Job: Định dạng PARQUET và append data mới
     job_config = bigquery.LoadJobConfig(
         source_format=bigquery.SourceFormat.PARQUET,
-        # WRITE_TRUNCATE: Ghi đè toàn bộ bảng (thường dùng cho các lô dữ liệu định kỳ)
-        # Nếu muốn nối thêm dữ liệu, đổi thành WRITE_APPEND
-        write_disposition=bigquery.WriteDisposition.WRITE_TRUNCATE,
+        # Trong thực tế DWH (Landing/Raw zone), chúng ta luôn append dữ liệu mới
+        write_disposition=bigquery.WriteDisposition.WRITE_APPEND,
+        # Áp dụng Time Partitioning theo ngày nạp (_PARTITIONTIME) 
+        # và tự động xóa dữ liệu raw sau 30 ngày để tối ưu chi phí lưu trữ
+        time_partitioning=bigquery.TimePartitioning(
+            type_=bigquery.TimePartitioningType.DAY,
+            expiration_ms=30 * 24 * 60 * 60 * 1000, # 30 ngày
+        ),
     )
 
     uri = f"gs://{bucket_name}/{source_prefix}/*.parquet"
@@ -45,6 +50,7 @@ def load_parquet_from_gcs(client, bucket_name, source_prefix, table_id):
         logger.info(f"SUCCESS: Loaded {load_job.output_rows} rows into {table_ref}.")
     except Exception as e:
         logger.error(f"FAILED to load BigQuery: {e}")
+        raise
 
 
 def run_load():

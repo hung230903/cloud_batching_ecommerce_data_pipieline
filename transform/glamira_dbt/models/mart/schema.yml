@@ -144,7 +144,7 @@ models:
       in a successful checkout order.
     columns:
       - name: sale_id
-        description: "Surrogate PK: order_id + '-' + line_item_id"
+        description: "Surrogate PK: FARM_FINGERPRINT of store_id + '|' + order_id + '|' + line_item_id"
         tests:
           - unique
           - not_null
@@ -223,6 +223,15 @@ models:
 
       - name: amount_raw
         description: "Sale amount in original currency (FLOAT64, rounded to 2 decimals)"
+
+      - name: currency
+        description: "Original currency string"
+        tests:
+          - relationships:
+              to: ref('dim_currency')
+              field: currency_code
+              config:
+                severity: warn
 
       - name: amount_usd
         description: "Sale amount converted to USD (FLOAT64, rounded to 2 decimals)"

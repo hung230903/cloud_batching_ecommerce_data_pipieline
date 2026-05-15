@@ -89,8 +89,16 @@ metal_options AS (
 
 enriched AS (
     SELECT
-        -- Generate a unique sale ID using order_id and the line item position
-        CONCAT(p.order_id, '-', p.line_item_id) AS sale_id,
+        -- Generate a unique sale ID using store_id, order_id, and the line item position
+        FARM_FINGERPRINT(
+            CONCAT(
+                COALESCE(p.store_id, ''),
+                '|',
+                COALESCE(p.order_id, ''),
+                '|',
+                CAST(p.line_item_id AS STRING)
+            )
+        ) AS sale_id,
         p.order_id,
         p.product_id,
         p.user_id_db,

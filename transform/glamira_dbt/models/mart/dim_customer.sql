@@ -11,5 +11,11 @@
 SELECT
     -- dbt Snapshot automatically adds:
     -- dbt_scd_id, dbt_updated_at, dbt_valid_from, dbt_valid_to
-    *
+    customer_id,
+    email_address,
+    event_timestamp,
+    dbt_scd_id,
+    dbt_updated_at,
+    dbt_valid_from,
+    dbt_valid_to
 FROM {{ ref('dim_customer_snapshot') }}
