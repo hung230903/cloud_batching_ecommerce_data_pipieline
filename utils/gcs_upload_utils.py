@@ -30,7 +30,7 @@ def upload_buffer_to_gcs(buffer, bucket_name, destination_blob_name):
 
 
 def ensure_schema_columns(df, schema):
-    """Đảm bảo DataFrame có đủ các cột theo schema, thêm cột thiếu nếu cần."""
+    """Ensure DataFrame has all columns according to schema, adding missing ones if necessary."""
     for name in schema.names:
         if name not in df.columns:
             if isinstance(schema.field(name).type, pa.ListType):
@@ -41,7 +41,7 @@ def ensure_schema_columns(df, schema):
 
 
 def write_batch_to_gcs(batch, collection_name, gcs_folder, part_idx, transform_func, schema, bucket_name):
-    """Chuyển đổi một batch documents sang Parquet buffer và upload lên GCS."""
+    """Convert a batch of documents to Parquet buffer and upload to GCS."""
     logger.info(
         f"[{collection_name}] Writing part {part_idx} | "
         f"Batch size: {len(batch):,} records..."
@@ -64,7 +64,7 @@ def write_batch_to_gcs(batch, collection_name, gcs_folder, part_idx, transform_f
     pq.write_table(table, parquet_buffer)
     parquet_buffer.seek(0)
 
-    # Nếu part_idx là string (trong trường hợp file json), giữ nguyên tên, nếu là số thì format
+    # If part_idx is string (in case of json file), keep the name, if number then format
     if isinstance(part_idx, str):
         destination = f"{gcs_folder}/{part_idx}"
     else:

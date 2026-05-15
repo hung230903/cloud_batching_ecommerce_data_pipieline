@@ -23,7 +23,7 @@ def transform_summary_data(df):
     ]
     nested_cols = ['option', 'cart_products']
 
-    # Hàm làm sạch sâu các Object và Array lồng nhau
+    # Function to deep clean nested Objects and Arrays
     def clean_nested_list(val, is_cart_products=False):
         if not isinstance(val, list):
             return []
@@ -52,7 +52,7 @@ def transform_summary_data(df):
                 else:
                     item['amount'] = 0
 
-                # Làm sạch sâu option lồng trong cart_products
+                # Deep clean nested option in cart_products
                 if 'option' not in item or not isinstance(item['option'], list):
                     item['option'] = []
                 else:
@@ -83,7 +83,7 @@ def transform_summary_data(df):
             cleaned_list.append(item)
         return cleaned_list
 
-    # Lặp qua tất cả các cột của DataFrame hiện tại
+    # Iterate through all columns of the current DataFrame
     for col in df.columns:
         if col in nested_cols:
             is_cart = (col == 'cart_products')

@@ -3,7 +3,7 @@ import pyarrow as pa
 
 def get_summary_pyarrow_schema():
     """
-    Định nghĩa Schema chuẩn của PyArrow để ép file Parquet có cấu trúc RECORD và REPEATED khớp với BigQuery.
+    Define the standard PyArrow Schema to cast Parquet files with RECORD and REPEATED structures to match BigQuery.
     """
     option_fields = [
         pa.field("option_id", pa.string()),
@@ -77,7 +77,7 @@ def get_summary_pyarrow_schema():
 
 def get_ip2location_pyarrow_schema():
     """
-    Định nghĩa Schema chuẩn của PyArrow cho ip2location, khớp với BigQuery.
+    Define the standard PyArrow Schema for ip2location, matching BigQuery.
     """
     schema = pa.schema([
         ("ip", pa.string()),
@@ -92,12 +92,12 @@ def get_ip2location_pyarrow_schema():
 
 def get_product_info_pyarrow_schema():
     """
-    Định nghĩa Schema chuẩn chi tiết nhất của PyArrow cho dữ liệu product_info.
-    Bao gồm đầy đủ các trường lồng nhau để phục vụ Dimensional Modeling.
-    Sử dụng Struct và List để tạo REPEATED RECORD trong BigQuery.
+    Define the most detailed standard PyArrow Schema for product_info data.
+    Includes all nested fields to serve Dimensional Modeling.
+    Uses Struct and List to create REPEATED RECORD in BigQuery.
     """
 
-    # Helper: Cấu trúc chung cho các thuộc tính chi tiết của Stone (carat, clarity, etc.)
+    # Helper: Common structure for detailed Stone attributes (carat, clarity, etc.)
     stone_attr_fields = [
         pa.field("default_label", pa.string()),
         pa.field("default_option_title", pa.string()),
@@ -107,7 +107,7 @@ def get_product_info_pyarrow_schema():
     ]
     stone_attr_struct = pa.struct(stone_attr_fields)
 
-    # Helper: Cấu trúc data_stones, stone_gia, stone_quality dùng chung các thuộc tính
+    # Helper: data_stones, stone_gia, stone_quality structures share these attributes
     stone_data_item_fields = [
         pa.field("carat", stone_attr_struct),
         pa.field("certificate", stone_attr_struct),
@@ -123,13 +123,13 @@ def get_product_info_pyarrow_schema():
         pa.field("stone_name", stone_attr_struct),
         pa.field("stone_type", stone_attr_struct),
         pa.field("total_carat", stone_attr_struct),
-        # Một số item có thêm id/label ở cấp ngoài
+        # Some items have additional id/label at the outer level
         pa.field("id", pa.string()),
         pa.field("label", pa.string()),
         pa.field("price", pa.string()),
     ]
 
-    # Cấu trúc đặc thù cho stone_quality có thêm quality_origins lồng bên trong
+    # Specific structure for stone_quality with nested quality_origins
     stone_quality_item_fields = stone_data_item_fields + [
         pa.field("quality_origins", pa.list_(pa.struct(stone_data_item_fields)))
     ]
@@ -224,7 +224,7 @@ def get_product_info_pyarrow_schema():
     ]
 
     schema = pa.schema([
-        ("product_id", pa.int64()),  # ID dạng số trong JSON
+        ("product_id", pa.int64()),  # Numeric ID in JSON
         ("product_name", pa.string()),
         ("sku", pa.string()),
         ("attribute_set_id", pa.int64()),

@@ -14,7 +14,7 @@ logger = setup_logger(
 
 
 def export_all():
-    # Gỡ bỏ credentials local để sử dụng ADC (Application Default Credentials) của GCP
+    # Remove local credentials to use GCP's Application Default Credentials (ADC)
     os.environ.pop("GOOGLE_APPLICATION_CREDENTIALS", None)
 
     logger.info("=== STARTING DATA EXPORT PIPELINE ===")

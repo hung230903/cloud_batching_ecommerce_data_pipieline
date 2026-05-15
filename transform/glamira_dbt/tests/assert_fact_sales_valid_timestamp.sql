@@ -1,6 +1,6 @@
 -- tests/assert_fact_sales_valid_timestamp.sql
--- Kiểm tra rằng tất cả event_timestamp đều nằm trong khoảng hợp lý (2020–2030).
--- Nếu có giá trị ngoài khoảng → có lỗi trong quá trình chuyển đổi TIMESTAMP_SECONDS.
+-- Check that all event_timestamps fall within a reasonable range (2020-2030).
+-- If values are outside this range -> error in TIMESTAMP_SECONDS conversion.
 
 SELECT
     sale_id,

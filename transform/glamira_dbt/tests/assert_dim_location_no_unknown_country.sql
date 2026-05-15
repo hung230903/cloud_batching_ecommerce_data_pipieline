@@ -1,7 +1,7 @@
 -- tests/assert_dim_location_no_unknown_country.sql
--- Kiểm tra không có location nào với country_long bị rỗng hoặc chỉ là ký tự dash.
--- IP2Location trả về '-' khi không xác định được location.
--- Severity: warn (vì một số IP thực sự không thể resolve được)
+-- Check that no location has a country_long that is empty or just a dash character.
+-- IP2Location returns '-' when the location cannot be determined.
+-- Severity: warn (because some IPs truly cannot be resolved)
 
 {{ config(severity='warn') }}
 

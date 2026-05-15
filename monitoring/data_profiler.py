@@ -15,7 +15,7 @@ from config.base import (
 )
 from config.logger import setup_logger
 
-# Tạo thư mục data_dictionary nếu chưa có
+# Create data_dictionary directory if it does not exist
 DICTIONARY_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data_dictionary")
 os.makedirs(DICTIONARY_DIR, exist_ok=True)
 
@@ -174,13 +174,13 @@ def _get_description(path):
 
 
 def _df_to_markdown(df):
-    """Xây dựng bảng Markdown thủ công từ DataFrame (không phụ thuộc 'tabulate')."""
+    """Manually build a Markdown table from DataFrame (no dependency on 'tabulate')."""
     cols = df.columns
     header = "| " + " | ".join(cols) + " |"
     sep = "| " + " | ".join(["---"] * len(cols)) + " |"
     rows = []
     for _, row in df.iterrows():
-        # Xử lý ký tự đặc biệt làm vỡ bảng MD
+        # Handle special characters that break MD tables
         row_clean = [str(v).replace("|", "\\|").replace("\n", " ").strip() for v in row]
         rows.append("| " + " | ".join(row_clean) + " |")
     return "\n".join([header, sep] + rows)
@@ -195,18 +195,18 @@ logger = setup_logger(
 
 def _generate_deep_profile(data, source_name, custom_file_name=None):
     """
-    Thực hiện profiling chuyên sâu và ghi kết quả ra file trong data_dictionary/.
+    Perform deep profiling and write results to a file in data_dictionary/.
     """
     if not data:
         logger.warning(f"{source_name} is empty.")
         return
 
     from collections import defaultdict
-    # stats: lưu values (để đếm), types (để biết kiểu), samples (để ví dụ)
+    # stats: store values (for counting), types (for type identification), samples (for examples)
     field_stats = defaultdict(lambda: {"values": [], "types": set(), "samples": []})
 
     def walk(obj, prefix, is_list_item=False):
-        # Tự động decode JSON strings
+        # Automatically decode JSON strings
         if isinstance(obj, str) and obj.strip().startswith(('{', '[')):
             try:
                 parsed = json.loads(obj)
@@ -223,7 +223,7 @@ def _generate_deep_profile(data, source_name, custom_file_name=None):
                 field_stats[prefix]["values"].append(val_to_record)
             else:
                 field_stats[prefix]["values"].append(obj)
-                # Thu thập mẫu (tối đa 3 giá trị khác nhau)
+                # Collect samples (maximum 3 distinct values)
                 if obj is not None and len(field_stats[prefix]["samples"]) < 3:
                     if obj not in field_stats[prefix]["samples"]:
                         field_stats[prefix]["samples"].append(obj)
@@ -236,7 +236,7 @@ def _generate_deep_profile(data, source_name, custom_file_name=None):
                 walk(item, prefix, is_list_item=True)
 
     for doc in data:
-        # Xử lý format của BigQuery row (nếu là Row object hoặc dict thô)
+        # Handle BigQuery row format (whether it's a Row object or raw dict)
         if hasattr(doc, "items"):  # dict-like
             walk(dict(doc), "")
         else:
@@ -269,16 +269,16 @@ def _generate_deep_profile(data, source_name, custom_file_name=None):
 
     profile_df = pd.DataFrame(profile_summary).sort_values("Field Path")
 
-    # Hiển thị ra console
+    # Display to console
     print(f"\n[{source_name} Deep Profiling Report]")
     with pd.option_context('display.max_rows', 10, 'display.max_columns', None):
         print(profile_df.to_string(index=False))
 
-    # Ghi ra file Markdown
+    # Write to Markdown file
     if custom_file_name:
         file_path = os.path.join(DICTIONARY_DIR, custom_file_name)
     else:
-        # Tên file cố định theo từng loại task
+        # Fixed file name for each task type
         lower_source = source_name.lower()
         if "product" in lower_source:
             task_key = "product_info"
@@ -292,7 +292,7 @@ def _generate_deep_profile(data, source_name, custom_file_name=None):
         f.write(f"# Data Dictionary: {source_name}\n\n")
         f.write(f"Generated at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
         f.write(_df_to_markdown(profile_df))
-        f.write("\n\n---\n*Ghi chú: Bảng này được tạo tự động dựa trên mẫu dữ liệu hiện tại.*")
+        f.write("\n\n---\n*Note: This table is automatically generated based on the current data sample.*")
 
     logger.info(f"Saved Data Dictionary to: {file_path}")
 
@@ -321,7 +321,7 @@ def profile_mongodb_collection(mongo_uri, db_name, collection_name, sample_size=
     cursor = collection.find().limit(sample_size)
     data = list(cursor)
 
-    # Loại bỏ _id khỏi profiling
+    # Exclude _id from profiling
     for d in data:
         if '_id' in d: del d['_id']
 

@@ -21,20 +21,20 @@ logger = setup_logger(
 
 
 def _get_product_json_files():
-    """Lấy danh sách các tệp JSON thành công từ thư mục crawler."""
+    """Get list of successful JSON files from the crawler directory."""
     success_dir = os.path.join(PRODUCT_INFO_DIR, "success")
     pattern = os.path.join(success_dir, "product_info_*.json")
     return sorted(glob.glob(pattern))
 
 
 def run_load_product_to_gcs():
-    """Đọc dữ liệu JSON, chuyển sang Parquet và đẩy lên GCS."""
+    """Read JSON data, convert to Parquet, and upload to GCS."""
     logger.info("=== Exporting PRODUCT INFO ===")
 
     checkpoint_manager = get_checkpoint_manager("load_product_to_gcs")
     last_processed_file = checkpoint_manager.get_checkpoint()
 
-    # Nếu checkpoint là dict (từ version mới), lấy ra file cuối
+    # If checkpoint is a dict (from new version), get the last file
     if isinstance(last_processed_file, dict):
         last_processed_file = last_processed_file.get("last_file")
 
@@ -48,7 +48,7 @@ def run_load_product_to_gcs():
     for i, file_path in enumerate(json_files, 1):
         filename = os.path.basename(file_path)
 
-        # Bỏ qua các file đã xử lý
+        # Skip already processed files
         if last_processed_file and filename <= last_processed_file:
             logger.info(f"Skipping already processed file: {filename}")
             continue

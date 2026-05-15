@@ -2,11 +2,11 @@ import os
 import logging
 from google.cloud import bigquery
 
-# Cấu hình log
+# Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Các biến cấu hình lấy từ Environment Variables trên GCP Cloud Function
+# Configuration variables from Environment Variables on GCP Cloud Function
 PROJECT_ID = os.getenv("BQ_PROJECT_ID")
 DATASET_ID = os.getenv("BQ_DATASET_ID")
 TABLE_SUMMARY = os.getenv("BQ_TABLE_SUMMARY")
@@ -18,19 +18,19 @@ PRODUCT_INFO_FOLDER = os.getenv("GCS_PRODUCT_INFO_FOLDER")
 
 def trigger_bigquery_load(event, context):
     """
-    Kích hoạt khi một file .parquet mới được upload lên GCS bucket.
+    Triggered when a new .parquet file is uploaded to the GCS bucket.
     """
     file_path = event['name']
     bucket_name = event['bucket']
     
-    # Chỉ xử lý file .parquet
+    # Only process .parquet files
     if not file_path.endswith('.parquet'):
         logger.info(f"Skipping non-parquet file: {file_path}")
         return
 
     logger.info(f"Detected new cloud file: gs://{bucket_name}/{file_path}")
 
-    # 1. Xác định bảng đích dựa trên đường dẫn file
+    # 1. Determine target table based on file path
     if file_path.startswith(SUMMARY_FOLDER):
         table_id = TABLE_SUMMARY
     elif file_path.startswith(IP2LOCATION_FOLDER):
@@ -44,16 +44,15 @@ def trigger_bigquery_load(event, context):
     table_ref = f"{PROJECT_ID}.{DATASET_ID}.{table_id}"
     client = bigquery.Client(project=PROJECT_ID)
     
-    # 2. Cấu hình Load Job linh hoạt
+    # 2. Flexible Load Job configuration
     job_config = bigquery.LoadJobConfig(
         source_format=bigquery.SourceFormat.PARQUET,
-        # Sử dụng WRITE_APPEND vì đây là Cloud Function được kích hoạt theo thời gian thực (real-time)
+        # Use WRITE_APPEND since this is a real-time Cloud Function
         write_disposition=bigquery.WriteDisposition.WRITE_APPEND,
-        # Cho phép BigQuery tự động thêm các field mới vào bảng nếu schema thay đổi
+        # Allow BigQuery to automatically add new fields to the table if the schema changes
         schema_update_options=[
             bigquery.SchemaUpdateOption.ALLOW_FIELD_ADDITION,
         ],
-        # any schema changes will be automatically handled
         autodetect=False, 
     )
 

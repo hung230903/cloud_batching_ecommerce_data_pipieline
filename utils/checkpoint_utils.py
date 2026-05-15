@@ -27,8 +27,8 @@ def get_checkpoint(job_name):
 
 def save_checkpoint(job_name, value):
     """
-    Lưu giá trị checkpoint mới cho một job vào file.
-    Nếu value là dict, lưu dưới dạng JSON string.
+    Save new checkpoint value for a job to file.
+    If value is a dict, save as a JSON string.
     """
     path = _get_checkpoint_path(job_name)
     with open(path, 'w', encoding='utf-8') as f:
@@ -39,7 +39,7 @@ def save_checkpoint(job_name, value):
 
 def get_checkpoint_manager(job_name):
     """
-    Tiện ích tạo nhanh manager dựa trên tên job.
+    Utility to quickly create a manager based on job name.
     """
     class SimpleManager:
         def get_checkpoint(self):

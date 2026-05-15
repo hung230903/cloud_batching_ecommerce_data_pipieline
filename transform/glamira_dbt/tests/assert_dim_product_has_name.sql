@@ -1,6 +1,6 @@
 -- tests/assert_dim_product_has_name.sql
--- Kiểm tra rằng mọi sản phẩm trong dim_product đều có product_name.
--- Product không có tên → có thể crawl failed hoặc data bị thiếu.
+-- Check that every product in dim_product has a product_name.
+-- Product without a name -> crawl might have failed or data is missing.
 
 SELECT
     product_id,

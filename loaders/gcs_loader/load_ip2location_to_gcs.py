@@ -17,7 +17,7 @@ logger = setup_logger(
 
 
 def run_load_ip2location():
-    """Đọc dữ liệu IP2Location từ các file JSON và upload lên GCS."""
+    """Read IP2Location data from JSON files and upload to GCS."""
     logger.info("=== Exporting IP2LOCATION ===")
     checkpoint_manager = get_checkpoint_manager("data_to_gcs_ip2location")
     last_processed_file = checkpoint_manager.get_checkpoint()
@@ -29,7 +29,7 @@ def run_load_ip2location():
         logger.warning(f"No IP2Location JSON files found in {IP2LOCATION_DIR}.")
         return
 
-    # Nếu checkpoint là dict (từ version mới), lấy ra file cuối
+    # If checkpoint is a dict (from new version), get the last file
     if isinstance(last_processed_file, dict):
         last_processed_file = last_processed_file.get("last_file")
 
@@ -38,7 +38,7 @@ def run_load_ip2location():
     for i, file_path in enumerate(json_files, 1):
         filename = os.path.basename(file_path)
 
-        # Bỏ qua các file đã xử lý
+        # Skip already processed files
         if last_processed_file and filename <= last_processed_file:
             logger.info(f"[ip2location] Skipping already processed file: {filename}")
             continue

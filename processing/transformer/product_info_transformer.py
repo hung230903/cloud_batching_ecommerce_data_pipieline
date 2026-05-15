@@ -5,13 +5,13 @@ from utils.data_transform_utils import safe_bool, safe_int, safe_float, safe_str
 
 def _filter_dict_to_schema(data, schema_type):
     """
-    Hàm đệ quy để lọc các field trong dict/list khớp với PyArrow Struct/List.
-    PyArrow Struct rất nghiêm ngặt: không được thừa/thiếu field so với schema.
+    Recursive function to filter fields in dict/list to match PyArrow Struct/List.
+    PyArrow Struct is extremely strict: no extra/missing fields allowed compared to the schema.
     """
     if data is None:
         return None
 
-    # Nếu schema yêu cầu Struct
+    # If schema requires a Struct
     if pa.types.is_struct(schema_type):
         if not isinstance(data, dict):
             return None
@@ -22,14 +22,14 @@ def _filter_dict_to_schema(data, schema_type):
             filtered[field.name] = _filter_dict_to_schema(val, field.type)
         return filtered
 
-    # Nếu schema yêu cầu List
+    # If schema requires a List
     if pa.types.is_list(schema_type):
         if not isinstance(data, list):
             return []
         item_schema = schema_type.value_type
         return [_filter_dict_to_schema(item, item_schema) for item in data]
 
-    # Kiểu dữ liệu nguyên tử (Scalar)
+    # Atomic data type (Scalar)
     if pa.types.is_integer(schema_type):
         return safe_int(data)
     if pa.types.is_floating(schema_type):
@@ -43,7 +43,7 @@ def _filter_dict_to_schema(data, schema_type):
 
 def transform_product_info_data(df):
     """
-    Tiến hành đệ quy và chuẩn hóa schema cho toàn bộ DataFrame
+    Recursively process and normalize schema for the entire DataFrame
     """
     schema = get_product_info_pyarrow_schema()
     for name in schema.names:

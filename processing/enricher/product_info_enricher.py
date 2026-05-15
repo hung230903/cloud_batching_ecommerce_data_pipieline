@@ -49,9 +49,9 @@ def extract_product_data(html):
                     "media_video": react_data.get("media_video"),
                 }
 
-                # Trích xuất chi tiết từ options (stone, alloy/color, custom)
+                # Extract details from options (stone, alloy/color, custom)
                 options = react_data.get("options", [])
-                data["options"] = json.dumps(options)  # Lưu toàn bộ options dưới dạng JSON string để dự phòng
+                data["options"] = json.dumps(options)  # Save all options as a JSON string for fallback
 
                 stone_list = []
                 colour_list = []
@@ -71,7 +71,7 @@ def extract_product_data(html):
                     elif group == "custom":
                         custom_list.extend(values)
 
-                # Lưu dưới dạng list object để PyArrow có thể xử lý mapping sang struct/list thay vì string
+                # Save as list objects so PyArrow can process mapping to struct/list instead of string
                 data["stone"] = stone_list
                 data["colour"] = colour_list
                 data["custom"] = custom_list

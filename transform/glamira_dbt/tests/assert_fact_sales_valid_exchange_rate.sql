@@ -1,6 +1,6 @@
 -- tests/assert_fact_sales_valid_exchange_rate.sql
--- Kiểm tra rằng exchange_rate_to_usd luôn dương và hợp lý (0 < rate <= 100).
--- Giá trị ngoài khoảng → có thể tỷ giá hardcode bị sai hoặc currency không nhận diện được.
+-- Check that exchange_rate_to_usd is always positive and reasonable (0 < rate <= 100).
+-- Values outside the range -> hardcoded exchange rate might be wrong or currency is not recognized.
 
 SELECT
     sale_id,

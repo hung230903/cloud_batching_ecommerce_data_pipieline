@@ -1,6 +1,6 @@
 -- tests/assert_fact_sales_amount_non_negative.sql
--- Kiểm tra rằng tất cả số tiền giao dịch đều >= 0.
--- Nếu có giá trị âm → có lỗi trong quá trình parse price hoặc dữ liệu nguồn.
+-- Check that all transaction amounts are >= 0.
+-- If there are negative values -> error during price parsing or in source data.
 
 SELECT
     sale_id,
