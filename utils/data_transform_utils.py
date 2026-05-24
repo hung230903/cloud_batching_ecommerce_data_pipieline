@@ -1,9 +1,23 @@
 import pandas as pd
 import json
 
+def is_null(val):
+    if val is None or val == "":
+        return True
+    if isinstance(val, (list, dict)):
+        return False
+    return pd.isna(val)
+
 def safe_bool(val):
-    if pd.isna(val) or val == "" or val is None:
+    if isinstance(val, list):
+        if len(val) == 1:
+            val = val[0]
+        else:
+            return None
+            
+    if is_null(val):
         return None
+        
     s = str(val).lower().strip()
     if s in ['true', '1', 't', 'y', 'yes']:
         return True
@@ -12,24 +26,43 @@ def safe_bool(val):
     return None
 
 def safe_int(val):
-    if val is None or pd.isna(val) or val == "":
+    if isinstance(val, list):
+        if len(val) == 1:
+            val = val[0]
+        else:
+            return None
+            
+    if is_null(val):
         return None
+        
     try:
         return int(float(val))
     except (ValueError, TypeError):
         return None
 
 def safe_float(val):
-    if val is None or pd.isna(val) or val == "":
+    if isinstance(val, list):
+        if len(val) == 1:
+            val = val[0]
+        else:
+            return None
+            
+    if is_null(val):
         return None
+        
     try:
         return float(val)
     except (ValueError, TypeError):
         return None
 
 def safe_string(val):
-    if val is None or pd.isna(val):
+    if isinstance(val, list) and len(val) == 1:
+        val = val[0]
+        
+    if is_null(val):
         return None
+        
     if isinstance(val, (dict, list)):
         return json.dumps(val, ensure_ascii=False)
+        
     return str(val)

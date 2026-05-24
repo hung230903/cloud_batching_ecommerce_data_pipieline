@@ -1,6 +1,12 @@
+import glob
 import json
 import os
 from collections import defaultdict
+
+try:
+    import bson
+except ImportError:
+    bson = None
 
 
 def get_type(value):
@@ -19,7 +25,7 @@ def get_type(value):
     elif isinstance(value, list):
         return "list"
     else:
-        return "unknown"
+        return type(value).__name__
 
 
 def extract_schema(obj, path="", schema=None, counter=None):
@@ -40,37 +46,88 @@ def extract_schema(obj, path="", schema=None, counter=None):
             extract_schema(v, new_path, schema, counter)
 
     elif isinstance(obj, list):
-        for item in obj[:100]:  # sampling
+        for item in obj:
             extract_schema(item, f"{path}[]", schema, counter)
 
     return schema, counter
 
 
-def main():
-    # Edit the file path to extract fields
-    file_path = "../data/product_info/success/product_info_1.json"
-
-    if not os.path.exists(file_path):
-        raise FileNotFoundError(f"File not found: {file_path}")
-
-    with open(file_path, "r", encoding="utf-8") as f:
-        data = json.load(f)
-
+def process_files(file_patterns, output_filename):
     schema = defaultdict(set)
     counter = defaultdict(int)
+    total_records = 0
 
-    total_records = min(len(data), 500)
+    all_files = []
+    for pattern in file_patterns:
+        all_files.extend(glob.glob(pattern))
 
-    for item in data[:total_records]:
-        extract_schema(item, "", schema, counter)
+    if not all_files:
+        print(f"No files found for patterns: {file_patterns}")
+        return
 
-    print("Schema: ")
-    for path in sorted(schema.keys()):
-        types = ", ".join(sorted(schema[path]))
-        freq = counter[path]
-        ratio = freq / total_records
+    print(f"Found {len(all_files)} files for {output_filename}. Starting scan...")
 
-        print(f"{path}: {types} | freq={freq}/{total_records} ({ratio:.2%})")
+    for file_path in all_files:
+        print(f"Scanning {file_path}...")
+        if file_path.endswith(".json"):
+            with open(file_path, "r", encoding="utf-8") as f:
+                try:
+                    data = json.load(f)
+                    if isinstance(data, list):
+                        for item in data:
+                            extract_schema(item, "", schema, counter)
+                            total_records += 1
+                    elif isinstance(data, dict):
+                        extract_schema(data, "", schema, counter)
+                        total_records += 1
+                except Exception as e:
+                    print(f"Error reading JSON {file_path}: {e}")
+
+        elif file_path.endswith(".bson"):
+            if bson is None:
+                print("bson library not installed. Cannot process .bson files.")
+                continue
+            with open(file_path, "rb") as f:
+                try:
+                    for item in bson.decode_file_iter(f):
+                        extract_schema(item, "", schema, counter)
+                        total_records += 1
+                        if total_records % 100000 == 0:
+                            print(f"Scanned {total_records:,} BSON records...")
+                except Exception as e:
+                    print(f"Error reading BSON {file_path}: {e}")
+
+    print(f"\n--- Scan Complete! Total records: {total_records:,} ---")
+
+    # Save to file
+    output_dir = "data/field_extractor"
+    os.makedirs(output_dir, exist_ok=True)
+    output_path = os.path.join(output_dir, output_filename)
+
+    with open(output_path, "w", encoding="utf-8") as f:
+        f.write(f"Total records processed: {total_records:,}\n")
+        f.write("Schema:\n\n")
+        for path in sorted(schema.keys()):
+            types = ", ".join(sorted(schema[path]))
+            freq = counter[path]
+            ratio = freq / total_records if total_records > 0 else 0
+            f.write(f"{path}: {types} | freq={freq}/{total_records} ({ratio:.2%})\n")
+
+    print(f"Saved extracted schema to: {output_path}\n")
+
+
+def main():
+    # Extract product info
+    process_files(
+        [
+            "data/product_info/product_info_*.json",
+            "data/product_info/success/product_info_*.json",
+        ],
+        "product_info_schema.txt",
+    )
+
+    # Extract summary
+    process_files(["data/glamira-data/summary.bson"], "summary_schema.txt")
 
 
 if __name__ == "__main__":

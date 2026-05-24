@@ -2,26 +2,12 @@ version: 2
 
 models:
   - name: int_stone_options
-    description: "Flattened stone options — one row per stone option per product."
-    columns:
-      - name: option_id
-        description: "Stone option ID"
-      - name: product_id
-        description: "Parent product ID"
-
+  
   - name: int_colour_options
-    description: "Flattened colour (and metal) options — one row per colour+metal option per product."
-    columns:
-      - name: colour_id
-        description: "Colour option ID"
-      - name: product_id
-        description: "Parent product ID"
 
   - name: int_checkout_events
-    description: "Filtered checkout_success events with resolved stone/colour/metal option IDs."
     columns:
       - name: sale_id
-        description: "Surrogate key: order_id + product_id"
         tests:
           - not_null
       - name: order_id

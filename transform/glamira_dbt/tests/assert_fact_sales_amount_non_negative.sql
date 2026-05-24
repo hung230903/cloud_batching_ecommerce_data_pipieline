@@ -7,5 +7,6 @@ SELECT
     amount_raw,
     amount_usd
 FROM {{ ref('fact_sales_order') }}
-WHERE amount_raw < 0
-   OR amount_usd < 0
+WHERE
+    amount_raw < 0
+    OR amount_usd < 0

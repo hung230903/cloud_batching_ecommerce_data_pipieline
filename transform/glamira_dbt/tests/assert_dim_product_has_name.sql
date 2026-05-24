@@ -6,5 +6,6 @@ SELECT
     product_id,
     product_name
 FROM {{ ref('dim_product') }}
-WHERE product_name IS NULL
-   OR TRIM(product_name) = ''
+WHERE
+    product_name IS NULL
+    OR TRIM(product_name) = ''

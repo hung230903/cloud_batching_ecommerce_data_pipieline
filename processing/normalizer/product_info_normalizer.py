@@ -1,7 +1,8 @@
-import json
 import pyarrow as pa
+
 from schema.schemas import get_product_info_pyarrow_schema
-from utils.data_transform_utils import safe_bool, safe_int, safe_float, safe_string
+from utils.data_transform_utils import safe_bool, safe_float, safe_int, safe_string
+
 
 def _filter_dict_to_schema(data, schema_type):
     """
@@ -41,7 +42,8 @@ def _filter_dict_to_schema(data, schema_type):
 
     return data
 
-def transform_product_info_data(df):
+
+def normalize_product_info_data(df):
     """
     Recursively process and normalize schema for the entire DataFrame
     """
@@ -50,6 +52,6 @@ def transform_product_info_data(df):
         field_type = schema.field(name).type
         if name not in df.columns:
             df[name] = None
-        
+
         df[name] = df[name].apply(lambda x: _filter_dict_to_schema(x, field_type))
     return df

@@ -17,17 +17,8 @@ def lookup_ip(ip):
 
     return {
         "ip": ip,
+        "country_short": record.country_short,
         "country": record.country_long,
         "region": record.region,
         "city": record.city,
-        "latitude": record.latitude,
-        "longitude": record.longitude,
     }
-
-
-def lookup_ip_from_doc(doc):
-    """
-    Wrapper for ProcessPoolExecutor (lambdas are not picklable).
-    Expects doc to have an _id field containing the IP address.
-    """
-    return lookup_ip(doc["_id"])

@@ -1,9 +1,9 @@
-import streamlit as st
-from google.cloud import bigquery
 import pandas as pd
 import plotly.express as px
+import streamlit as st
+from google.cloud import bigquery
 
-from config.base import BQ_PROJECT_ID, BQ_MART_DATASET_ID
+from config.base import BQ_MART_DATASET_ID, BQ_PROJECT_ID
 
 
 # Initialize BigQuery client
@@ -11,13 +11,17 @@ from config.base import BQ_PROJECT_ID, BQ_MART_DATASET_ID
 def get_bq_client():
     return bigquery.Client(project=BQ_PROJECT_ID)
 
+
 @st.cache_data(ttl=3600)
 def run_query(query):
     client = get_bq_client()
     # db-dtypes is required under the hood for to_dataframe()
     return client.query(query).to_dataframe()
 
-st.set_page_config(page_title="Glamira Executive Dashboard", page_icon="💎", layout="wide")
+
+st.set_page_config(
+    page_title="Glamira Executive Dashboard", page_icon="💎", layout="wide"
+)
 
 st.title("💎 Glamira Executive Dashboard")
 st.markdown("Live Data Warehouse Analytics directly from Google BigQuery")
@@ -34,17 +38,25 @@ try:
         FROM `{BQ_PROJECT_ID}.{BQ_MART_DATASET_ID}.fact_sales_order`
     """
     rev_data = run_query(rev_query)
-    
+
     col1, col2, col3 = st.columns(3)
     # Using simple checks if data is empty or NA
-    total_rev = rev_data['total_revenue'][0] if not pd.isna(rev_data['total_revenue'][0]) else 0
-    aov = rev_data['average_order_value'][0] if not pd.isna(rev_data['average_order_value'][0]) else 0
-    total_ord = rev_data['total_orders'][0] if not pd.isna(rev_data['total_orders'][0]) else 0
+    total_rev = (
+        rev_data["total_revenue"][0] if not pd.isna(rev_data["total_revenue"][0]) else 0
+    )
+    aov = (
+        rev_data["average_order_value"][0]
+        if not pd.isna(rev_data["average_order_value"][0])
+        else 0
+    )
+    total_ord = (
+        rev_data["total_orders"][0] if not pd.isna(rev_data["total_orders"][0]) else 0
+    )
 
     col1.metric("Total Revenue", f"${total_rev:,.2f}")
     col2.metric("Average Order Value (AOV)", f"${aov:,.2f}")
     col3.metric("Total Orders", f"{int(total_ord):,}")
-    
+
     st.markdown("---")
 
     # 2. Time-based trends
@@ -59,11 +71,16 @@ try:
         ORDER BY full_date
     """
     time_data = run_query(time_query)
-    
+
     if not time_data.empty:
         # Create line chart
-        fig_time = px.line(time_data, x="full_date", y="daily_revenue", 
-                           title="Daily Revenue Trend", markers=True)
+        fig_time = px.line(
+            time_data,
+            x="full_date",
+            y="daily_revenue",
+            title="Daily Revenue Trend",
+            markers=True,
+        )
         # Enhance aesthetic layout
         fig_time.update_layout(xaxis_title="Date", yaxis_title="Revenue ($)")
         st.plotly_chart(fig_time, use_container_width=True)
@@ -100,9 +117,14 @@ try:
         """
         geo_data = run_query(geo_query_fixed)
         if not geo_data.empty:
-            fig_geo = px.bar(geo_data, x="country", y="revenue", 
-                             color="revenue", color_continuous_scale="Viridis",
-                             title="Top 10 Countries by Revenue")
+            fig_geo = px.bar(
+                geo_data,
+                x="country",
+                y="revenue",
+                color="revenue",
+                color_continuous_scale="Viridis",
+                title="Top 10 Countries by Revenue",
+            )
             fig_geo.update_layout(xaxis_title="Country", yaxis_title="Revenue ($)")
             st.plotly_chart(fig_geo, use_container_width=True)
         else:
@@ -123,11 +145,20 @@ try:
         """
         prod_data = run_query(prod_query)
         if not prod_data.empty:
-            fig_prod = px.bar(prod_data, y="product_name", x="revenue", 
-                              orientation='h', color="revenue", color_continuous_scale="Plasma",
-                              title="Top 10 Products by Revenue")
-            fig_prod.update_layout(yaxis={'categoryorder':'total ascending'}, 
-                                   xaxis_title="Revenue ($)", yaxis_title="")
+            fig_prod = px.bar(
+                prod_data,
+                y="product_name",
+                x="revenue",
+                orientation="h",
+                color="revenue",
+                color_continuous_scale="Plasma",
+                title="Top 10 Products by Revenue",
+            )
+            fig_prod.update_layout(
+                yaxis={"categoryorder": "total ascending"},
+                xaxis_title="Revenue ($)",
+                yaxis_title="",
+            )
             st.plotly_chart(fig_prod, use_container_width=True)
         else:
             st.info("No product data available yet.")

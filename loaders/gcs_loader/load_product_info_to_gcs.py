@@ -2,13 +2,9 @@ import glob
 import json
 import os
 
-from config.base import (
-    PRODUCT_INFO_DIR,
-    GCS_BUCKET_NAME,
-    GCS_PRODUCT_INFO_FOLDER
-)
+from config.base import GCS_BUCKET_NAME, GCS_PRODUCT_INFO_FOLDER, SUCCESS_DIR
 from config.logger import setup_logger
-from processing.transformer.product_info_transformer import transform_product_info_data
+from processing.normalizer.product_info_normalizer import normalize_product_info_data
 from schema.schemas import get_product_info_pyarrow_schema
 from utils.checkpoint_utils import get_checkpoint_manager
 from utils.gcs_upload_utils import write_batch_to_gcs
@@ -22,8 +18,7 @@ logger = setup_logger(
 
 def _get_product_json_files():
     """Get list of successful JSON files from the crawler directory."""
-    success_dir = os.path.join(PRODUCT_INFO_DIR, "success")
-    pattern = os.path.join(success_dir, "product_info_*.json")
+    pattern = os.path.join(SUCCESS_DIR, "*.json")
     return sorted(glob.glob(pattern))
 
 
@@ -56,7 +51,7 @@ def run_load_product_to_gcs():
         logger.info(f"Processing file {i}/{len(json_files)}: {filename}")
 
         try:
-            with open(file_path, 'r', encoding='utf-8') as f:
+            with open(file_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
 
             if not data:
@@ -69,9 +64,9 @@ def run_load_product_to_gcs():
                 collection_name="product_info",
                 gcs_folder=GCS_PRODUCT_INFO_FOLDER,
                 part_idx=parquet_name,
-                transform_func=transform_product_info_data,
+                transform_func=normalize_product_info_data,
                 schema=schema,
-                bucket_name=GCS_BUCKET_NAME
+                bucket_name=GCS_BUCKET_NAME,
             )
 
             checkpoint_manager.save_checkpoint({"last_file": filename})

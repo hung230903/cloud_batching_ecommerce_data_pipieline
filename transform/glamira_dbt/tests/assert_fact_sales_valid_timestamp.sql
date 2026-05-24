@@ -7,5 +7,6 @@ SELECT
     order_id,
     event_timestamp
 FROM {{ ref('int_checkout_events') }}
-WHERE event_timestamp < TIMESTAMP('2020-01-01')
-   OR event_timestamp > TIMESTAMP('2030-12-31')
+WHERE
+    event_timestamp < TIMESTAMP('2020-01-01')
+    OR event_timestamp > TIMESTAMP('2030-12-31')

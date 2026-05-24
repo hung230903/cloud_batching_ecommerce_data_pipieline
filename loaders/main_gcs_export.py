@@ -20,9 +20,9 @@ def export_all():
     logger.info("=== STARTING DATA EXPORT PIPELINE ===")
     start_time = datetime.now()
 
+    run_load_ip2location()
     run_load_product_to_gcs()
     run_load_summary()
-    run_load_ip2location()
 
     end_time = datetime.now()
     logger.info(f"=== PIPELINE FINISHED. Duration: {end_time - start_time} ===")

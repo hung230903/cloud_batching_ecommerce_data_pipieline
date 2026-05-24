@@ -3,15 +3,11 @@ from datetime import datetime
 from google.cloud import bigquery
 
 from config.base import (
-    BQ_PROJECT_ID,
     BQ_DATASET_ID,
+    BQ_PROJECT_ID,
     BQ_TABLE_IP2LOCATION,
-    BQ_TABLE_SUMMARY,
-    BQ_TABLE_PRODUCT_INFO,
     GCS_BUCKET_NAME,
-    GCS_SUMMARY_FOLDER,
     GCS_IP2LOCATION_FOLDER,
-    GCS_PRODUCT_INFO_FOLDER
 )
 from config.logger import setup_logger
 
@@ -22,21 +18,26 @@ logger = setup_logger(
 )
 
 
-def load_parquet_from_gcs(client, bucket_name, source_prefix, table_id):
+def load_parquet_from_gcs(
+    client,
+    bucket_name,
+    source_prefix,
+    table_id,
+    write_disp=bigquery.WriteDisposition.WRITE_APPEND,
+):
     """Load all Parquet files from a GCS prefix into a BigQuery table."""
     table_ref = f"{BQ_PROJECT_ID}.{BQ_DATASET_ID}.{table_id}"
 
-    # Load Job Configuration: PARQUET format and append new data
+    # Load Job Configuration: PARQUET format
     job_config = bigquery.LoadJobConfig(
         source_format=bigquery.SourceFormat.PARQUET,
-        # In a real DWH (Landing/Raw zone), we always append new data
-        write_disposition=bigquery.WriteDisposition.WRITE_APPEND,
-        # Apply Time Partitioning by load date (_PARTITIONTIME) 
+        write_disposition=write_disp,
+        # Apply Time Partitioning by load date (_PARTITIONTIME)
         # and automatically delete raw data after 30 days to optimize storage costs
-        time_partitioning=bigquery.TimePartitioning(
-            type_=bigquery.TimePartitioningType.DAY,
-            expiration_ms=30 * 24 * 60 * 60 * 1000, # 30 days
-        ),
+        # time_partitioning=bigquery.TimePartitioning(
+        #     type_=bigquery.TimePartitioningType.DAY,
+        #     expiration_ms=30 * 24 * 60 * 60 * 1000,  # 30 days
+        # ),
     )
 
     uri = f"gs://{bucket_name}/{source_prefix}/*.parquet"
@@ -60,13 +61,21 @@ def run_load():
     client = bigquery.Client(project=BQ_PROJECT_ID)
 
     # Summary
-    load_parquet_from_gcs(client, GCS_BUCKET_NAME, GCS_SUMMARY_FOLDER, BQ_TABLE_SUMMARY)
+    # load_parquet_from_gcs(client, GCS_BUCKET_NAME, GCS_SUMMARY_FOLDER, BQ_TABLE_SUMMARY)
 
-    # IP Location
-    load_parquet_from_gcs(client, GCS_BUCKET_NAME, GCS_IP2LOCATION_FOLDER, BQ_TABLE_IP2LOCATION)
+    # IP Location (Overwrite table to update schema with new country_short field)
+    load_parquet_from_gcs(
+        client,
+        GCS_BUCKET_NAME,
+        GCS_IP2LOCATION_FOLDER,
+        BQ_TABLE_IP2LOCATION,
+        write_disp=bigquery.WriteDisposition.WRITE_TRUNCATE,
+    )
 
     # Product Info
-    load_parquet_from_gcs(client, GCS_BUCKET_NAME, GCS_PRODUCT_INFO_FOLDER, BQ_TABLE_PRODUCT_INFO)
+    # load_parquet_from_gcs(
+    #     client, GCS_BUCKET_NAME, GCS_PRODUCT_INFO_FOLDER, BQ_TABLE_PRODUCT_INFO
+    # )
 
     end_time = datetime.now()
     logger.info(f"Finished BQ Load Job. Duration: {end_time - start_time}")

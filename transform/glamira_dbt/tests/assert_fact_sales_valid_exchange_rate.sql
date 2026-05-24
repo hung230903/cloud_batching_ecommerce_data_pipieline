@@ -7,5 +7,6 @@ SELECT
     currency,
     exchange_rate_to_usd
 FROM {{ ref('fact_sales_order') }}
-WHERE exchange_rate_to_usd <= 0
-   OR exchange_rate_to_usd > 100
+WHERE
+    exchange_rate_to_usd <= 0
+    OR exchange_rate_to_usd > 100

@@ -15,14 +15,14 @@ clean-targets:
   - "dbt_packages"
 
 vars:
-  project_id: "concise-voice-486808-m9"
-  raw_dataset: "glamira_project"
+  project_id: "{{ env_var('BQ_PROJECT_ID') }}"
+  raw_dataset: "{{ env_var('BQ_DATASET_ID', 'glamira_raw_layer') }}"
 
 models:
   glamira_dbt:
     staging:
       +schema: glamira_staging
-      +materialized: view 
+      +materialized: view
       +tags: ["staging"]
     intermediate:
       +schema: glamira_intermediate

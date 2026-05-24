@@ -51,7 +51,9 @@ def extract_product_data(html):
 
                 # Extract details from options (stone, alloy/color, custom)
                 options = react_data.get("options", [])
-                data["options"] = json.dumps(options)  # Save all options as a JSON string for fallback
+                data["options"] = (
+                    options  # Save all options as a JSON string for fallback
+                )
 
                 stone_list = []
                 colour_list = []

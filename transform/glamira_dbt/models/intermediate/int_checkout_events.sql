@@ -65,26 +65,25 @@ options_unnested AS (
 ),
 
 stone_options AS (
-    SELECT order_id, line_item_id, product_id, value_id AS stone_id
-    FROM options_unnested
-    WHERE LOWER(option_label) LIKE '%stone%'
-    QUALIFY ROW_NUMBER() OVER (PARTITION BY order_id, line_item_id ORDER BY value_id) = 1
+    SELECT o.order_id, o.line_item_id, o.product_id, o.value_id AS stone_id
+    FROM options_unnested o
+    JOIN {{ ref('int_stone_options') }} s ON o.value_id = s.option_type_id
+    QUALIFY ROW_NUMBER() OVER (PARTITION BY o.order_id, o.line_item_id ORDER BY o.value_id) = 1
 ),
 
 colour_options AS (
-    SELECT order_id, line_item_id, product_id, value_id AS colour_id
-    FROM options_unnested
-    WHERE LOWER(option_label) LIKE '%colour%'
-       OR LOWER(option_label) LIKE '%color%'
-    QUALIFY ROW_NUMBER() OVER (PARTITION BY order_id, line_item_id ORDER BY value_id) = 1
+    SELECT o.order_id, o.line_item_id, o.product_id, o.value_id AS colour_id
+    FROM options_unnested o
+    JOIN {{ ref('int_colour_options') }} c ON o.value_id = c.option_type_id
+    QUALIFY ROW_NUMBER() OVER (PARTITION BY o.order_id, o.line_item_id ORDER BY o.value_id) = 1
 ),
 
 metal_options AS (
-    SELECT order_id, line_item_id, product_id, value_id AS metal_id
-    FROM options_unnested
-    WHERE LOWER(option_label) LIKE '%metal%'
-       OR LOWER(option_label) LIKE '%alloy%'
-    QUALIFY ROW_NUMBER() OVER (PARTITION BY order_id, line_item_id ORDER BY value_id) = 1
+    SELECT o.order_id, o.line_item_id, o.product_id, c.metal_id AS metal_id
+    FROM options_unnested o
+    JOIN {{ ref('int_colour_options') }} c ON o.value_id = c.option_type_id
+    WHERE c.metal_id IS NOT NULL
+    QUALIFY ROW_NUMBER() OVER (PARTITION BY o.order_id, o.line_item_id ORDER BY o.value_id) = 1
 ),
 
 enriched AS (

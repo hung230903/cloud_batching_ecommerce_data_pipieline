@@ -22,6 +22,10 @@ WITH dim_location_source AS (
 dim_location_surrogate AS (
     SELECT
         -- Surrogate key based on the unique combination of location attributes
+        country_long,
+        country_short,
+        region_name,
+        city_name,
         FARM_FINGERPRINT(
             CONCAT(
                 COALESCE(country_long, ''),
@@ -30,11 +34,7 @@ dim_location_surrogate AS (
                 '|',
                 COALESCE(city_name, '')
             )
-        ) AS location_id,
-        country_long,
-        country_short,
-        region_name,
-        city_name
+        ) AS location_id
     FROM dim_location_source
 )
 

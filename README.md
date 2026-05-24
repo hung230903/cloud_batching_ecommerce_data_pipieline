@@ -80,8 +80,12 @@ for seamless data ingestion.
 │   ├── base.py                # Environment variables & constants
 │   └── logger.py              # Standardized logging setup
 ├── extract/                   # Data collection logic
-│   ├── pid_filter.py          # Filters unique Product IDs (PIDs)
-│   └── product_crawler.py     # Async high-performance crawler
+│   ├── ip/
+│   │   ├── get_enriched_ip.py # Batch processes IP enrichment
+│   │   └── ip_unique_filter.py # Filters unique IP addresses
+│   └── product/
+│       ├── pid_filter.py      # Filters unique Product IDs (PIDs)
+│       └── product_crawler.py # Async high-performance crawler
 ├── loaders/                   # Data movement & synchronization
 │   ├── main_gcs_export.py     # Main orchestrator for GCS export
 │   ├── gcs_to_bq.py           # Manual BigQuery load orchestrator
@@ -90,7 +94,7 @@ for seamless data ingestion.
 │   │   ├── load_product_info_to_gcs.py  # Syncs Product JSONs to GCS
 │   │   └── load_summary_to_gcs.py       # Syncs massive Summary BSON to GCS
 │   └── mongo_loader/          # MongoDB specific uploaders
-│       └── load_ip_to_mongo.py          # Maps IPs to Geo-data
+│       └── load_enriched_ip_to_mongo.py # Loads enriched Geo-data
 ├── monitoring/                # Quality assurance & profiling
 │   ├── data_profiler.py       # Profiling & data dictionaries
 │   └── e2e_test.py            # End-to-end pipeline integration tests
@@ -98,15 +102,18 @@ for seamless data ingestion.
 │   ├── enricher/              # Data Enrichment (Lookup / HTML parsing)
 │   │   ├── ip_enricher.py              # IP to Geo-location enrichment
 │   │   └── product_info_enricher.py    # HTML parsing for product data
-│   └── transformer/           # Data Transformation & Cleaning
-│       ├── ip2location_transformer.py  # Cleans IP Geo data
-│       ├── product_info_transformer.py # Strictly casts Product to PyArrow schema
-│       └── summary_transformer.py      # Cleans complex nested Summary events
+│   ├── filter/                # Data filtering logic
+│   │   └── product_urls_filter.py      # Cleans and filters product URLs
+│   └── normalizer/            # Data Normalization & Cleaning
+│       ├── ip2location_normalizer.py   # Cleans IP Geo data
+│       ├── product_info_normalizer.py  # Strictly casts Product to PyArrow schema
+│       └── summary_normalizer.py       # Cleans complex nested Summary events
 ├── schema/                    # Schema definitions
 │   └── schemas.py             # PyArrow & BigQuery schemas
 ├── transform/                 # dbt Transformation layer
 │   └── glamira_dbt/
 │       ├── models/            # Star Schema (Mart, Staging, Int)
+│       ├── seeds/             # Static reference mappings (e.g., store mapping)
 │       ├── snapshots/         # SCD Type 2 (dim_customer)
 │       ├── macros/            # Custom SQL macros
 │       ├── dbt_project.yml    # dbt configuration
@@ -117,11 +124,14 @@ for seamless data ingestion.
 │   ├── gcs_upload_utils.py    # Shared GCS Parquet upload & batching logic
 │   ├── file_saving_utils.py   # JSON/Parquet file handlers
 │   ├── time_utils.py          # Time formatting utilities
-│   ├── field_extractor_utils.py # Nested field extraction helpers
+│   └── field_extractor_utils.py # Nested field extraction helpers
 ├── data/                      # Local data cache (JSON/BSON/Parquet)
 ├── logs/                      # Execution and error logs
 ├── data_dictionary/           # Data profiling & metadata docs
 ├── checkpoint/                # Pipeline state for resumable jobs
+│   ├── check_ip.py            # Diagnostic tools for IP checkpoint
+│   ├── check_labels.py        # Diagnostic tools for labels checkpoint
+│   └── check_price.py         # Diagnostic tools for price checkpoint
 ├── dashboard.py               # Streamlit-based analytics dashboard
 ├── main.py                    # Main ETL orchestration script
 ├── pyproject.toml             # uv dependencies & project metadata
@@ -147,14 +157,23 @@ for seamless data ingestion.
 
 ### 🏗 Enterprise Data Modeling
 
-- **Medallion Architecture**: Clear separation between `raw`, `intermediate`, and `mart` layers.
-    - **Intermediate Layer**: Processes complex JSON arrays into relational structures (e.g., `int_checkout_events`,
-      `int_colour_options`, `int_stone_options`).
+- **Medallion Architecture**: Clear separation between `staging`, `intermediate`, and `mart` layers.
+    - **Staging Layer**: Extracts raw data, casts datatypes, and performs basic schema alignment (e.g., `stg_glamira__product`, `stg_glamira__summary`).
+    - **Intermediate Layer**: Handles heavy data transformation.
+        - `int_checkout_events`: Flattens and unnests complex JSON checkout log arrays.
+        - `int_colour_options` & `int_stone_options`: Normalizes nested product sub-attributes.
+        - `int_product_translated`, `int_colour_translated`, `int_metal_translated`, `int_stone_translated`: Executes deduplication (`QUALIFY ROW_NUMBER()`) and applies complex text processing (regex spelling corrections, multi-pass translations) to prioritize English locales.
+    - **Mart Layer**: The presentation layer for BI tools. Contains "Thin" dimensions (`dim_product`, `dim_colour`, `dim_metal`, `dim_stone`) that simply select from the intermediate layer, keeping the architecture exceptionally clean.
 - **SCD Type 2 Tracking**: Historical versioning for the `dim_customer` dimension ensures accurate point-in-time
   analysis.
 - **Star Schema**: Highly optimized for BI tools and complex analytical queries. Fact tables utilize `FARM_FINGERPRINT`
   for **INT64 surrogate keys** and implement `incremental` materialization (Merge strategy) to process large datasets
   swiftly.
+- **Multi-language Dimension Normalization**: Resolves fan-out data duplication in product dimensions (`dim_metal`, `dim_colour`, `dim_stone`) using deterministic `QUALIFY ROW_NUMBER()` window functions, intelligently prioritizing English locales (`glus`, `glgb`, `glca`, `glau`).
+- **Seed Mappings**: Leverages static CSV files to enforce business rules directly within the data warehouse:
+    - `dim_store_mapping.csv`: Bridges raw numeric `store_id` values (from legacy events) with actual localized `store_code` strings (e.g., `glvn`, `glde`).
+    - `exchange_rates.csv`: Provides static currency exchange rates for accurate financial normalization.
+    - `product_category_translation.csv`: Acts as a dynamic dictionary for the intermediate layer to perform multi-pass text replacements, ensuring diverse foreign product names are consistently translated into English.
 
 ---
 
@@ -187,6 +206,8 @@ The transformation layer builds a robust Star Schema within BigQuery:
 - **Intermediate Tables**:
     - `int_checkout_events`: Flattens complex checkout log arrays.
     - `int_colour_options` & `int_stone_options`: Normalizes product attributes for the Star Schema.
+    - `int_product_translated`: Deduplicates raw products and applies robust, regex-based string corrections and multi-pass translations.
+    - `int_colour_translated`, `int_metal_translated`, `int_stone_translated`: Extracts deduplication logic and English name prioritization, adhering strictly to the Thin Mart philosophy.
 
 ### 🗄️ Schema Design
 
@@ -237,6 +258,7 @@ uv run dbt deps
 uv run dbt snapshot
 
 # Run transformations (Build Star Schema)
+uv run dbt seed                # Load static mapping files
 uv run dbt run --full-refresh  # First time
 uv run dbt run                 # Subsequent runs
 uv run dbt test

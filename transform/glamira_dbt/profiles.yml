@@ -1,0 +1,12 @@
+glamira_dbt:
+  target: dev
+  outputs:
+    dev:
+      type: bigquery
+      method: oauth
+      project: "{{ env_var('BQ_PROJECT_ID') }}"
+      dataset: "{{ env_var('BQ_DEFAULT_DATASET', 'glamira_data_staging') }}"
+      location: asia-southeast1
+      threads: 4
+      timeout_seconds: 300
+      priority: interactive

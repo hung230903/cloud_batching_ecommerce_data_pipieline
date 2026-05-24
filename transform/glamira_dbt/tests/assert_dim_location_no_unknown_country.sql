@@ -11,6 +11,7 @@ SELECT
     region_name,
     city_name
 FROM {{ ref('dim_location') }}
-WHERE country_long IS NULL
-   OR TRIM(country_long) = ''
-   OR TRIM(country_long) = '-'
+WHERE
+    country_long IS NULL
+    OR TRIM(country_long) = ''
+    OR TRIM(country_long) = '-'
