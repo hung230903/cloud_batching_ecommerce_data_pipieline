@@ -1,60 +1,94 @@
 import logging
+import subprocess
 
-from config.base import CRAWLER_BATCH_SIZE
-from extract.pid_filter import run_pid_filter
-from extract.product_crawler import run_product_crawler
-from loaders.gcs_to_bq import run_load as bq_load
+from extract.product.product_crawler import run_product_crawler
 from loaders.main_gcs_export import export_all
-from loaders.mongo_loader.load_ip_to_mongo import run_ip_to_location as run_ip_transform
+from loaders.mongo_loader.load_enriched_ip_to_mongo import load_enriched_ip_to_mongo
 
-# Setup logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-def step_ip_to_location():
-    logger.info("--- STAGE 1: IP TO LOCATION ---")
-    run_ip_transform()
+def stage_1_extract():
+    logger.info(" --- STAGE 1: EXTRACT DATA FOR PIPELINE ---")
+
+    logger.info(" --- STEP 1: IP EXTRACTION ---")
+    load_enriched_ip_to_mongo()
+
+    logger.info(" --- STEP 2: PRODUCT INFO EXTRACTION ---")
+    run_product_crawler()
 
 
-def step_pid_filter():
-    logger.info("--- STAGE 2: PID FILTER ---")
-    run_pid_filter()
-
-
-def step_product_crawler():
-    logger.info("--- STAGE 3: PRODUCT CRAWLER ---")
-    run_product_crawler(batch_size=CRAWLER_BATCH_SIZE)
-
-
-def step_export_to_gcs():
-    logger.info("--- STAGE 4: EXPORT ALL TO GCS ---")
+def load_step():
+    logger.info(" --- STAGE 2: LOAD DATA TO GCS ---")
     export_all()
 
 
-def step_bigquery_load():
-    logger.info("--- OPTIONAL STAGE: BIGQUERY LOAD ---")
-    bq_load()
+def stage_2_load():
+    logger.info("--- STAGE 2: LOAD ---")
+
+    logger.info("- STEP 1: Export to GCS with Cloud Functions -")
+    # Export all
+    export_all()
+
+    # Manual export (Commented out)
+    # run_load_ip2location()
+    # run_load_summary()
+    # run_load_product_to_gcs()
+
+    logger.info("- STEP 2: Deploy Cloud Functions to GCP -")
+    # Uncomment and replace YOUR_GCS_BUCKET_NAME with your actual bucket name to deploy
+    try:
+        logger.info("Deploying gcs_to_bq cloud function...")
+        subprocess.run(
+            [
+                "gcloud",
+                "functions",
+                "deploy",
+                "gcs_to_bq",
+                "--runtime",
+                "python310",
+                "--trigger-resource",
+                "YOUR_GCS_BUCKET_NAME",
+                "--trigger-event",
+                "google.storage.object.finalize",
+                "--entry-point",
+                "trigger_bigquery_load",
+                "--source",
+                "cloud_functions/gcs_to_bq",
+                "--region",
+                "CHOOSE_YOUR_REGION",  # Change to your region if needed
+            ],
+            check=True,
+        )
+        logger.info("Cloud Function deployed successfully.")
+    except subprocess.CalledProcessError as e:
+        logger.error(f"Failed to deploy Cloud Function: {e}")
+        raise
+
+    logger.info("- STEP 3: Export to BigQuery manually -")
+    # bq_load()
+
+
+def stage_3_transform():
+    logger.info("--- STAGE 3: TRANSFORM ---")
+    logger.info("- STEP 1: Run dbt models -")
+    try:
+        # Run dbt inside the transform/glamira_dbt directory
+        subprocess.run(["dbt", "run"], cwd="transform/glamira_dbt", check=True)
+        logger.info("dbt run completed successfully.")
+    except subprocess.CalledProcessError as e:
+        logger.error(f"dbt run failed with error: {e}")
+        raise
 
 
 def main():
     logger.info("=== STARTING FULL DATA PIPELINE FLOW ===")
 
     try:
-        # Stage 1
-        step_ip_to_location()
-
-        # Stage 2
-        step_pid_filter()
-
-        # Stage 3
-        step_product_crawler()
-
-        # Stage 4
-        step_export_to_gcs()
-
-        # Optional Stage: Manually load data from gcs to bigquery
-        # step_bigquery_load()
+        stage_1_extract()
+        stage_2_load()
+        stage_3_transform()
 
         logger.info("=== DATA PIPELINE COMPLETED SUCCESSFULLY ===")
     except Exception as e:

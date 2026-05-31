@@ -69,6 +69,7 @@ dim_product_dedup_base AS (
 -- Collect all translation keywords into arrays for the JS UDF
 translation_arrays AS (
     SELECT
+        -- Sort(DESC) all the records by original_keyword
         ARRAY_AGG(NORMALIZE(original_keyword, NFC) ORDER BY LENGTH(original_keyword) DESC) AS keywords,
         ARRAY_AGG(english_translation ORDER BY LENGTH(original_keyword) DESC) AS translations
     FROM {{ ref('product_category_translation') }}
