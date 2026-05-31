@@ -27,7 +27,9 @@ DOMAINS_PATH = os.path.join(
     DATA_DIR, os.getenv("PRODUCT_DOMAINS_DIR_NAME", "domains_filter")
 )
 
-PRODUCT_URLS_FILTER_DIR = os.path.join(DATA_DIR, "product_urls_filter")
+PRODUCT_URLS_FILTER_DIR = os.path.join(
+    DATA_DIR, os.getenv("PRODUCT_URLS_FILTER_DIR_NAME", "product_urls_filter")
+)
 CRAWLER_BATCH_SIZE = int(os.getenv("PRODUCT_CRAWLER_BATCH_SIZE", 500))
 CRAWLER_SEMAPHORE = int(os.getenv("PRODUCT_CRAWLER_SEMAPHORE", 13))
 DOMAIN_MAX_REQUEST = int(os.getenv("DOMAIN_MAX_REQUEST", 4))

@@ -32,14 +32,15 @@ process, and analyze data from the Glamira e-commerce platform. The project impl
 The pipeline is organized into modular stages, combining manual/scheduled extraction with **event-driven automation**
 for seamless data ingestion.
 
-| Stage                        | Description                                                                                       | Orchestration       |
-| :--------------------------- | :------------------------------------------------------------------------------------------------ | :------------------ |
-| **Stage 1: IP to Location**  | Enrich raw user IP addresses into geographic data using IP2Location LITE DB.                      | Manual/Local        |
-| **Stage 2: PID Filter**      | Filters Product IDs (PIDs) and all associated Product URLs for crawling.                          | Manual/Local        |
-| **Stage 3: Product Crawler** | Asynchronous high-performance crawling for product info enrichment.                               | Manual/Local        |
-| **Stage 4: Export to GCS**   | Consolidates and syncs processed data (JSON/BSON) to GCS in **Optimized Parquet** format.         | Manual/Local        |
-| **Stage 5: BigQuery Load**   | **Automated** with **CLoud Functions** to ingest Parquet files from GCS into BigQuery raw tables. | **Cloud Functions** |
-| **Stage 6: dbt Transform**   | Executes SQL transformations to build the analytical **Star Schema**.                             | dbt Cloud / Local   |
+| Stage                                 | Description                                                                                       | Orchestration       |
+| :------------------------------------ | :------------------------------------------------------------------------------------------------ | :------------------ |
+| **Stage 1: IP to Location**           | Enrich raw user IP addresses into geographic data using IP2Location LITE DB.                      | Manual/Local        |
+| **Stage 2: PID Filter**               | Filters Product IDs (PIDs) and all associated Product URLs for crawling.                          | Manual/Local        |
+| **Stage 3: Filter/Score Product Url** | Cleans, scores, and selects the optimal Product URLs for crawling to maximize efficiency.         | Manual/Local        |
+| **Stage 4: Product Crawler**          | Asynchronous high-performance crawling for product info enrichment.                               | Manual/Local        |
+| **Stage 5: Export to GCS**            | Consolidates and syncs processed data (JSON/BSON) to GCS in **Optimized Parquet** format.         | Manual/Local        |
+| **Stage 6: BigQuery Load**            | **Automated** with **Cloud Functions** to ingest Parquet files from GCS into BigQuery raw tables. | **Cloud Functions** |
+| **Stage 7: dbt Transform**            | Executes SQL transformations to build the analytical **Star Schema**.                             | dbt Cloud / Local   |
 
 ### 🔄 Event-Driven Flow
 
@@ -115,7 +116,7 @@ for seamless data ingestion.
 │       ├── models/            # Star Schema (Mart, Staging, Int)
 │       ├── seeds/             # Static reference mappings (e.g., store mapping)
 │       ├── snapshots/         # SCD Type 2 (dim_customer)
-│       ├── macros/            # Custom SQL macros
+│       ├── macros/            # Custom SQL/JS-UDF macros
 │       ├── dbt_project.yml    # dbt configuration
 │       └── profiles.yml       # BQ connection profiles
 ├── utils/                     # Reusable helper functions
@@ -129,9 +130,6 @@ for seamless data ingestion.
 ├── logs/                      # Execution and error logs
 ├── data_dictionary/           # Data profiling & metadata docs
 ├── checkpoint/                # Pipeline state for resumable jobs
-│   ├── check_ip.py            # Diagnostic tools for IP checkpoint
-│   ├── check_labels.py        # Diagnostic tools for labels checkpoint
-│   └── check_price.py         # Diagnostic tools for price checkpoint
 ├── dashboard.py               # Streamlit-based analytics dashboard
 ├── main.py                    # Main ETL orchestration script
 ├── pyproject.toml             # uv dependencies & project metadata
@@ -146,7 +144,7 @@ for seamless data ingestion.
 
 - **Local-First Processing**: IP2Location and Product Info are processed from local JSON batches, significantly reducing
   MongoDB overhead and API latency.
-- **Asynchronous Crawling**: Apply `aiohttp` with `semaphores` to crawl thousands of products efficiently.
+- **Asynchronous Crawling**: Apply `aiohttp` with `semaphores` and 'limit_per_host(TCPConnector)' to crawl thousands of products efficiently.
 
 ### 🤖 Serverless Automation
 
@@ -162,7 +160,7 @@ for seamless data ingestion.
   - **Intermediate Layer**: Handles heavy data transformation.
     - `int_checkout_events`: Flattens and unnests complex JSON checkout log arrays.
     - `int_colour_options` & `int_stone_options`: Normalizes nested product sub-attributes.
-    - `int_product_translated`, `int_colour_translated`, `int_metal_translated`, `int_stone_translated`: Executes deduplication (`QUALIFY ROW_NUMBER()`) and applies complex text processing (regex spelling corrections, multi-pass translations) to prioritize English locales.
+    - `int_product_translated`, `int_colour_translated`, `int_metal_translated`, `int_stone_translated`: Executes deduplication (`QUALIFY ROW_NUMBER()`) and applies complex text processing (regex spelling corrections, single-pass JavaScript UDF translations) to prioritize English locales.
   - **Mart Layer**: The presentation layer for BI tools. Contains "Thin" dimensions (`dim_product`, `dim_colour`, `dim_metal`, `dim_stone`) that simply select from the intermediate layer, keeping the architecture exceptionally clean.
 - **SCD Type 2 Tracking**: Historical versioning for the `dim_customer` dimension ensures accurate point-in-time
   analysis.
@@ -173,7 +171,7 @@ for seamless data ingestion.
 - **Seed Mappings**: Leverages static CSV files to enforce business rules directly within the data warehouse:
   - `dim_store_mapping.csv`: Bridges raw numeric `store_id` values (from legacy events) with actual localized `store_code` strings (e.g., `glvn`, `glde`).
   - `exchange_rates.csv`: Provides static currency exchange rates for accurate financial normalization.
-  - `product_category_translation.csv`: Acts as a dynamic dictionary for the intermediate layer to perform multi-pass text replacements, ensuring diverse foreign product names are consistently translated into English.
+  - `product_category_translation.csv`: Acts as a dynamic dictionary for the intermediate layer to perform high-performance, single-pass text replacements via JS UDFs, ensuring diverse foreign product names are consistently translated into English.
 
 ---
 
@@ -206,7 +204,7 @@ The transformation layer builds a robust Star Schema within BigQuery:
 - **Intermediate Tables**:
   - `int_checkout_events`: Flattens complex checkout log arrays.
   - `int_colour_options` & `int_stone_options`: Normalizes product attributes for the Star Schema.
-  - `int_product_translated`: Deduplicates raw products and applies robust, regex-based string corrections and multi-pass translations.
+  - `int_product_translated`: Deduplicates raw products and applies robust, regex-based string corrections and single-pass translations using a BigQuery JavaScript UDF.
   - `int_colour_translated`, `int_metal_translated`, `int_stone_translated`: Extracts deduplication logic and English name prioritization, adhering strictly to the Thin Mart philosophy.
 
 ### 🗄️ Schema Design

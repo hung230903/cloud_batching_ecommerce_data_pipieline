@@ -66,7 +66,7 @@ def stage_2_load():
         logger.error(f"Failed to deploy Cloud Function: {e}")
         raise
 
-    logger.info("- STEP 3: Export to BigQuery manually -")
+    # logger.info("- STEP 3: Export to BigQuery manually -")
     # bq_load()
 
 
