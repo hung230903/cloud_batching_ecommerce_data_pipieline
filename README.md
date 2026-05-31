@@ -33,7 +33,7 @@ The pipeline is organized into modular stages, combining manual/scheduled extrac
 for seamless data ingestion.
 
 | Stage                        | Description                                                                                       | Orchestration       |
-|:-----------------------------|:--------------------------------------------------------------------------------------------------|:--------------------|
+| :--------------------------- | :------------------------------------------------------------------------------------------------ | :------------------ |
 | **Stage 1: IP to Location**  | Enrich raw user IP addresses into geographic data using IP2Location LITE DB.                      | Manual/Local        |
 | **Stage 2: PID Filter**      | Filters Product IDs (PIDs) and all associated Product URLs for crawling.                          | Manual/Local        |
 | **Stage 3: Product Crawler** | Asynchronous high-performance crawling for product info enrichment.                               | Manual/Local        |
@@ -55,7 +55,7 @@ for seamless data ingestion.
 ## 🛠 Tech Stack
 
 | Category                  | Technology                           |
-|:--------------------------|:-------------------------------------|
+| :------------------------ | :----------------------------------- |
 | **Language**              | Python 3.13+                         |
 | **Data Orchestration**    | Custom Python Runner (`main.py`)     |
 | **Automation**            | Google Cloud Functions (Python 3.11) |
@@ -158,12 +158,12 @@ for seamless data ingestion.
 ### 🏗 Enterprise Data Modeling
 
 - **Medallion Architecture**: Clear separation between `staging`, `intermediate`, and `mart` layers.
-    - **Staging Layer**: Extracts raw data, casts datatypes, and performs basic schema alignment (e.g., `stg_glamira__product`, `stg_glamira__summary`).
-    - **Intermediate Layer**: Handles heavy data transformation.
-        - `int_checkout_events`: Flattens and unnests complex JSON checkout log arrays.
-        - `int_colour_options` & `int_stone_options`: Normalizes nested product sub-attributes.
-        - `int_product_translated`, `int_colour_translated`, `int_metal_translated`, `int_stone_translated`: Executes deduplication (`QUALIFY ROW_NUMBER()`) and applies complex text processing (regex spelling corrections, multi-pass translations) to prioritize English locales.
-    - **Mart Layer**: The presentation layer for BI tools. Contains "Thin" dimensions (`dim_product`, `dim_colour`, `dim_metal`, `dim_stone`) that simply select from the intermediate layer, keeping the architecture exceptionally clean.
+  - **Staging Layer**: Extracts raw data, casts datatypes, and performs basic schema alignment (e.g., `stg_glamira__product`, `stg_glamira__summary`).
+  - **Intermediate Layer**: Handles heavy data transformation.
+    - `int_checkout_events`: Flattens and unnests complex JSON checkout log arrays.
+    - `int_colour_options` & `int_stone_options`: Normalizes nested product sub-attributes.
+    - `int_product_translated`, `int_colour_translated`, `int_metal_translated`, `int_stone_translated`: Executes deduplication (`QUALIFY ROW_NUMBER()`) and applies complex text processing (regex spelling corrections, multi-pass translations) to prioritize English locales.
+  - **Mart Layer**: The presentation layer for BI tools. Contains "Thin" dimensions (`dim_product`, `dim_colour`, `dim_metal`, `dim_stone`) that simply select from the intermediate layer, keeping the architecture exceptionally clean.
 - **SCD Type 2 Tracking**: Historical versioning for the `dim_customer` dimension ensures accurate point-in-time
   analysis.
 - **Star Schema**: Highly optimized for BI tools and complex analytical queries. Fact tables utilize `FARM_FINGERPRINT`
@@ -171,9 +171,9 @@ for seamless data ingestion.
   swiftly.
 - **Multi-language Dimension Normalization**: Resolves fan-out data duplication in product dimensions (`dim_metal`, `dim_colour`, `dim_stone`) using deterministic `QUALIFY ROW_NUMBER()` window functions, intelligently prioritizing English locales (`glus`, `glgb`, `glca`, `glau`).
 - **Seed Mappings**: Leverages static CSV files to enforce business rules directly within the data warehouse:
-    - `dim_store_mapping.csv`: Bridges raw numeric `store_id` values (from legacy events) with actual localized `store_code` strings (e.g., `glvn`, `glde`).
-    - `exchange_rates.csv`: Provides static currency exchange rates for accurate financial normalization.
-    - `product_category_translation.csv`: Acts as a dynamic dictionary for the intermediate layer to perform multi-pass text replacements, ensuring diverse foreign product names are consistently translated into English.
+  - `dim_store_mapping.csv`: Bridges raw numeric `store_id` values (from legacy events) with actual localized `store_code` strings (e.g., `glvn`, `glde`).
+  - `exchange_rates.csv`: Provides static currency exchange rates for accurate financial normalization.
+  - `product_category_translation.csv`: Acts as a dynamic dictionary for the intermediate layer to perform multi-pass text replacements, ensuring diverse foreign product names are consistently translated into English.
 
 ---
 
@@ -200,18 +200,18 @@ The transformation layer builds a robust Star Schema within BigQuery:
 
 - **Fact Tables**: `fact_sales_order` (sales transactions and product interactions).
 - **Dimension Tables**:
-    - `dim_product`, `dim_customer` (**SCD Type 2**), `dim_location`, `dim_currency`.
-    - `dim_colour`, `dim_metal`, `dim_stone`, `dim_store`.
-    - `dim_date` (Standardized time analysis).
+  - `dim_product`, `dim_customer` (**SCD Type 2**), `dim_location`, `dim_currency`.
+  - `dim_colour`, `dim_metal`, `dim_stone`, `dim_store`.
+  - `dim_date` (Standardized time analysis).
 - **Intermediate Tables**:
-    - `int_checkout_events`: Flattens complex checkout log arrays.
-    - `int_colour_options` & `int_stone_options`: Normalizes product attributes for the Star Schema.
-    - `int_product_translated`: Deduplicates raw products and applies robust, regex-based string corrections and multi-pass translations.
-    - `int_colour_translated`, `int_metal_translated`, `int_stone_translated`: Extracts deduplication logic and English name prioritization, adhering strictly to the Thin Mart philosophy.
+  - `int_checkout_events`: Flattens complex checkout log arrays.
+  - `int_colour_options` & `int_stone_options`: Normalizes product attributes for the Star Schema.
+  - `int_product_translated`: Deduplicates raw products and applies robust, regex-based string corrections and multi-pass translations.
+  - `int_colour_translated`, `int_metal_translated`, `int_stone_translated`: Extracts deduplication logic and English name prioritization, adhering strictly to the Thin Mart philosophy.
 
 ### 🗄️ Schema Design
 
-<img src="images/glamira-dw-design.png" alt="Glamira Data Warehouse Schema Design"/>
+<img src="images/glamira-dw-design (1).png" alt="Glamira Data Warehouse Schema Design"/>
 
 ---
 
@@ -220,7 +220,7 @@ The transformation layer builds a robust Star Schema within BigQuery:
 The system uses a `.env` file for secure configuration.
 
 | Key                       | Description                                |
-|:--------------------------|:-------------------------------------------|
+| :------------------------ | :----------------------------------------- |
 | `MONGODB_URI`             | Connection string for the raw data source. |
 | `GCS_BUCKET_NAME`         | Destination bucket for Parquet files.      |
 | `BQ_PROJECT_ID`           | Your Google Cloud Project ID.              |
@@ -286,9 +286,9 @@ gcloud functions deploy gcs_to_bq \
 
 - **Integrated Logging**: Centralized logger in `config/logger.py` tracks all stages from extraction to GCS upload.
 - **dbt Data Quality Tests**:
-    - Automated validation of primary keys and relationships.
-    - Custom business logic tests (e.g., `assert_fact_sales_amount_non_negative`,
-      `assert_dim_location_no_unknown_country`).
+  - Automated validation of primary keys and relationships.
+  - Custom business logic tests (e.g., `assert_fact_sales_amount_non_negative`,
+    `assert_dim_location_no_unknown_country`).
 - **End-to-End Integration Tests**: The `monitoring/e2e_test.py` script validates the full data flow from raw extraction
   to BigQuery availability.
 - **Checkpointing**: Uses local state management in `checkpoint/` to resume failed jobs from the exact last successful
