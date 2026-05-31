@@ -252,14 +252,14 @@ python main.py
 
 # Run dbt snapshots (Capture historical changes)
 cd transform/glamira_dbt
-uv run dbt deps
-uv run dbt snapshot
+uv run --env-file ../../.env dbt deps
+uv run --env-file ../../.env dbt snapshot
 
 # Run transformations (Build Star Schema)
-uv run dbt seed                # Load static mapping files
-uv run dbt run --full-refresh  # First time
-uv run dbt run                 # Subsequent runs
-uv run dbt test
+uv run --env-file ../../.env dbt seed                # Load static mapping files
+uv run --env-file ../../.env dbt run --full-refresh  # First time
+uv run --env-file ../../.env dbt run                 # Subsequent runs
+uv run --env-file ../../.env dbt test
 ```
 
 ---
