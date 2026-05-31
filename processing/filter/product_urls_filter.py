@@ -22,7 +22,7 @@ logger = setup_logger(
 
 
 def get_product_list():
-    path = os.path.join(PID_FILTER_DIR, "product_url_batch_*.json")
+    path = os.path.join(PID_FILTER_DIR, "product_url_unique_batch_*.json")
     files = sorted(glob.glob(path))
 
     products = []
@@ -44,7 +44,9 @@ def filter_domains():
         re.IGNORECASE,
     )
 
-    files = sorted(glob.glob(os.path.join(PID_FILTER_DIR, "product_url_batch_*.json")))
+    files = sorted(
+        glob.glob(os.path.join(PID_FILTER_DIR, "product_url_unique_batch_*.json"))
+    )
 
     for file in files:
         with open(file, "r", encoding="utf-8") as f:
@@ -161,7 +163,7 @@ def run_url_filter():
 
     for idx in range(0, len(filtered_products), batch_size):
         batch = filtered_products[idx : idx + batch_size]
-        filename = f"product_url_batch_{file_counter}.json"
+        filename = f"pid_url_filter_batch_{file_counter}.json"
 
         save_json_batch(
             data=batch,

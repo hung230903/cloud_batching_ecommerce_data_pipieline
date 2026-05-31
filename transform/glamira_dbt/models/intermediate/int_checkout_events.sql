@@ -39,15 +39,20 @@ cart_lines AS (
          UNNEST(c.cart_products.list) AS cp WITH OFFSET AS line_item_id
 ),
 
--- Parse the European formatted price string (e.g., "1.101,00") to a numeric value
+-- Parse price strings that may be in European (e.g., "1.101,00") or Swiss (e.g., "1'756.00") format
 priced AS (
     SELECT
         *,
-        -- European format uses dots, spaces, or apostrophes as thousands sep, commas as decimal sep
-        -- Use REGEXP_REPLACE to keep ONLY digits and the comma, then replace comma with period for FLOAT64
-        CAST(
-            NULLIF(REPLACE(REGEXP_REPLACE(raw_price, r'[^0-9,]', ''), ',', '.'), '') AS FLOAT64
-        ) AS sale_price
+        CASE
+            -- European format: comma is the decimal separator (e.g., "1.101,00" or "1 234,56")
+            -- → strip everything except digits, commas, and dots → remove dots (thousands) → swap comma to dot
+            WHEN REGEXP_CONTAINS(raw_price, r',') THEN
+                CAST(NULLIF(REPLACE(REPLACE(REGEXP_REPLACE(raw_price, r'[^0-9,.]', ''), '.', ''), ',', '.'), '') AS FLOAT64)
+            -- Swiss / standard format: dot is the decimal separator (e.g., "1'756.00" or "1756.00")
+            -- → strip everything except digits and dots
+            ELSE
+                CAST(NULLIF(REGEXP_REPLACE(raw_price, r'[^0-9.]', ''), '') AS FLOAT64)
+        END AS sale_price
     FROM cart_lines
 ),
 

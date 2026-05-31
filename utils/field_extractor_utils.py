@@ -3,10 +3,7 @@ import json
 import os
 from collections import defaultdict
 
-try:
-    import bson
-except ImportError:
-    bson = None
+import bson
 
 
 def get_type(value):

@@ -11,5 +11,6 @@
 SELECT
     colour_id,
     colour_code,
-    colour_name
+    colour_name,
+    colour_label
 FROM {{ ref('int_colour_translated') }}

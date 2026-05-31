@@ -25,6 +25,7 @@ flattened AS (
         c.element.colour_code,
         c.element.metal AS metal_id,
         c.element.colour_label,
+        -- Remove html tags...
         REGEXP_REPLACE(c.element.metal_label, '<[^>]+>', '') AS metal_name
 
     FROM products AS p,

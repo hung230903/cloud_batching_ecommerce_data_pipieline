@@ -86,7 +86,7 @@ def _write_batch(batch, file_idx, output_dir, output_prefix):
     save_json_batch(data=batch, directory=output_dir, filename=filename, logger=logger)
 
 
-def run_pid_filter(output_prefix="product_url_batch"):
+def run_pid_filter(output_prefix="product_url_unique_batch"):
     """
     Execute the full extraction pipeline.
     MongoDB returns unique (product_id, url) pairs sorted by product_id.

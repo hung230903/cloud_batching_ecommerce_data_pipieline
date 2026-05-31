@@ -40,26 +40,36 @@ def ensure_schema_columns(df, schema):
     return df[schema.names]
 
 
-def write_batch_to_gcs(batch, collection_name, gcs_folder, part_idx, transform_func, schema, bucket_name):
+def write_batch_to_gcs(
+    batch, collection_name, gcs_folder, part_idx, transform_func, schema, bucket_name
+):
     """Convert a batch of documents to Parquet buffer and upload to GCS."""
     logger.info(
         f"[{collection_name}] Writing part {part_idx} | "
         f"Batch size: {len(batch):,} records..."
     )
 
+    # Convert data batch to data frame
     df = pd.DataFrame(batch)
     if "_id" in df.columns:
         df = df.drop(columns=["_id"])
 
+    #  Pre transform data before upsert data to gcs
     if transform_func:
         df = transform_func(df)
 
     if schema:
         df = ensure_schema_columns(df, schema)
+
+        """
+        Pandas Dataframe cannot define extactly data type for complex data type (String, Struct, Dict...)
+        Convert to Pyarrow table with schema
+        """
         table = pa.Table.from_pandas(df, schema=schema)
     else:
         table = pa.Table.from_pandas(df)
 
+    # Load Pyarrow Table data to parquet in RAM
     parquet_buffer = io.BytesIO()
     pq.write_table(table, parquet_buffer)
     parquet_buffer.seek(0)

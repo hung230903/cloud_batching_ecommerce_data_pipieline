@@ -9,27 +9,18 @@ WITH source AS (
 
 renamed AS (
     SELECT
-        -- Identifiers
         CAST(product_id AS STRING) AS product_id,
         product_name,
         sku,
         CAST(attribute_set_id AS INT64) AS attribute_set_id,
         type_id,
-
-        -- Pricing
         min_price,
         max_price,
-
-        -- Classification
         CAST(collection_id AS STRING) AS collection_id,
         CAST(category_id AS INT64) AS category_id,
         CAST(store_id AS STRING) AS store_code,
         material_design AS product_type_id,
-
-        -- Material attributes
         stone,
-
-        -- Nested option arrays (used by transform layer)
         colour,
         options,
         CASE

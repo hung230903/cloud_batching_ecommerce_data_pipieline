@@ -304,19 +304,19 @@ Ringen,Ring
 Ringer,Ring
 반지,Ring
 Heren ring,Men's Ring
-Nhẫn GLAMIRA,Ring
+Nhẫn,Ring
 여성 결혼 반지,Women's Wedding Ring
 여성반지,Women's Ring
-GLAMIRA 반지,Ring
+반지,Ring
 남성 결혼 반지,Men's Wedding Ring
 약혼 반지,Engagement Ring
-GLAMIRA 목걸이,Necklace
+목걸이,Necklace
 남성 반지,Men's Ring
 여성 목걸이,Women's Necklace
 커프스단추,Cufflinks
 여성 펜던트,Women's Pendant
 어린이 반지,Children's Ring
-GLAMIRA 귀걸이,Earring
+귀걸이,Earring
 여성 팔찌,Women's Bracelet
 女士婚戒,Women's Wedding Ring
 婚戒,Wedding Ring
@@ -342,8 +342,8 @@ Herren trauring,Men's Wedding Ring
 Ehering,Wedding Ring
 Trauring,Wedding Ring
 Snubní Ringy,Wedding Rings
-GLAMIRA Náhrdelník,Necklace
-GLAMIRA Prívesok,Pendant
+Náhrdelník,Necklace
+Prívesok,Pendant
 Naise abielusõrmus,Women's Wedding Ring
 Meeste sõrmused,Men's Rings
 Mehe abielusõrmus,Men's Wedding Ring
@@ -351,7 +351,7 @@ Naiste sõrmused,Women's Rings
 Kihlasõrmus,Engagement Ring
 Lapse kõrvarõngas,Children's Earring
 Meeste sõrmus,Men's Ring
-Glamira Käevõru,Bracelet
+Käevõru,Bracelet
 Naise kõrvarõngas,Women's Earring
 Bracelet para Niño,Children's Bracelet
 Lapse sõrmus,Children's Ring
@@ -463,23 +463,23 @@ Mansetinööp,Cufflinks
 Мъжка Wedding Ring,Men's Wedding Ring
 Дамска колие,Women's Necklace
 Мъжки огърлица,Men's Necklace
-Glamira Колие,Necklace
-Glamira Висулка,Pendant
-GLAMIRA Висулка,Pendant
-GLAMIRA Natural Колие,Necklace
+Колие,Necklace
+Висулка,Pendant
+Висулка,Pendant
+Natural Колие,Necklace
 女士Ring,Women's Ring
 男士Ring,Men's Ring
 結Wedding Ring指,Wedding Ring
 女士结Wedding Ring指,Women's Wedding Ring
 女士项链,Women's Necklace
 袖扣,Cufflinks
-GLAMIRA 吊坠,Pendant
-GLAMIRA Hängsmycke,Pendant
-Glamira Hängsmycke,Pendant
+吊坠,Pendant
+Hängsmycke,Pendant
+Hängsmycke,Pendant
 Par löftesring,Couple's Promise Ring
-GLAMIRA Halskæde,Necklace
-GLAMIRA Vėriniai,Necklace
-GLAMIRA Fülbevaló,Earring
+Halskæde,Necklace
+Vėriniai,Necklace
+Fülbevaló,Earring
 Pendant Męski,Men's Pendant
 Kolczyk Męski,Men's Earring
 Kolczyk damski,Women's Earring
@@ -488,7 +488,7 @@ Bērna kulons,Children's Pendant
 Sievietes rokassprādze,Women's Bracelet
 Moteriškas apyrankė,Women's Bracelet
 Vyriški pakabukai,Men's Pendants
-Glamira Apyrankė,Bracelet
+Apyrankė,Bracelet
 Otroška obesek,Children's Pendant
 Dečiji minđuša,Children's Earring
 Dečiji narukvica,Children's Bracelet
@@ -529,29 +529,30 @@ Barn Örhänge,Children's Earring
 Barns vedhæng,Children's Pendant
 Barns armbånd,Children's Bracelet
 Herr Hängsmycke,Men's Pendant
-GLAMIRA Ørering,Earring
-GLAMIRA Halskjede,Necklace
+Ørering,Earring
+Halskjede,Necklace
 Erkek Küpesi,Men's Earring
-Glamira 吊坠,Pendant
+Erkek,Men's
+吊坠,Pendant
 儿童吊坠,Children's Pendant
 儿童耳环,Children's Earring
 女士Bracelet,Women's Bracelet
 男士Bracelet,Men's Bracelet
 Necklace de Mujer,Women's Necklace
 Pendant damski,Women's Pendant
-GLAMIRA Медальон,Pendant
-GLAMIRA ペンダント,Pendant
+Медальон,Pendant
+ペンダント,Pendant
 Muški prsten,Men's Ring
 Ženski prsteni,Women's Rings
 Ženski narukvica,Women's Bracelet
 Ženski zapestnica,Women's Bracelet
 Naszyjniki dziecięce,Children's Necklaces
 Ženski venčani prsten,Women's Wedding Ring
-GLAMIRA Обеци,GLAMIRA Earrings
+Обеци,Earrings
 Necklaceта,Necklace
 Aproču Pogas,Cufflinks
 iki piršto vidurio,Knuckle Ring
-GLAMIRA Ogrlica,GLAMIRA Necklace
+Ogrlica,Necklace
 lüxury,luxury
 Lüxury,Luxury
 Céline,Celine
@@ -563,7 +564,7 @@ Mari̇tza,Maritza
 Kadın Yüzük,Women's Ring
 Engagement Ringe,Engagement Ring
 女士结婚Ring指,Women's Wedding Ring
-GLAMIRA Žiedas,GLAMIRA Ring
+Žiedas,Ring
 Snubní Prsteny,Wedding Rings
 Snubné Prstene,Wedding Rings
 Pánský snubní prsten,Men's Wedding Ring
@@ -631,12 +632,12 @@ Manchetknoop,Cufflink
 Bouton de manchette,Cufflink
 Ring Masculinos,Men's Ring
 Abotoadura,Cufflink
-Glamira Bracelete,Glamira Bracelet
+Bracelete,Bracelet
 Pendant para hombre,Men's Pendant
 Bracelet de Mujer,Women's Bracelet
-GLAMIRA Oorbel,GLAMIRA Earring
-Glamira Bracelets voor Kinderen,Glamira Children's Bracelets
-GLAMIRA Pendentif,GLAMIRA Pendant
+Oorbel,Earring
+Bracelets voor Kinderen,Children's Bracelets
+Pendentif,Pendant
 Pendant de hombre,Men's Pendant
 Bracelet pour enfant,Children's Bracelet
 Ring de Pareja,Couple's Ring

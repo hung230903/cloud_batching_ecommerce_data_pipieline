@@ -1,9 +1,12 @@
 -- models/intermediate/int_product_translated.sql
 -- Purpose: Deduplicate products and apply translation/cleaning logic to product names.
+--          Uses a JavaScript UDF to translate ALL keywords in a single pass
+--          (replaces the previous multi-pass CTE approach).
 
 {{
   config(
-    tags = ['intermediate', 'product']
+    tags = ['intermediate', 'product'],
+    sql_header = udf_translate_name()
   )
 }}
 
@@ -63,49 +66,23 @@ dim_product_dedup_base AS (
     WHERE s.rn = 1
 ),
 
--- Pass 1: Apply longest-matching translation to base_name
-translated_names_1 AS (
+-- Collect all translation keywords into arrays for the JS UDF
+translation_arrays AS (
+    SELECT
+        ARRAY_AGG(NORMALIZE(original_keyword, NFC) ORDER BY LENGTH(original_keyword) DESC) AS keywords,
+        ARRAY_AGG(english_translation ORDER BY LENGTH(original_keyword) DESC) AS translations
+    FROM {{ ref('product_category_translation') }}
+),
+
+-- Apply all translations in a single pass via JS UDF
+dim_product_translated AS (
     SELECT
         b.product_id,
-        REPLACE(
+        translate_name(
             NORMALIZE(b.base_name, NFC),
-            NORMALIZE(t.original_keyword, NFC),
-            t.english_translation
-        ) AS translated_name,
-        ROW_NUMBER() OVER (PARTITION BY b.product_id ORDER BY LENGTH(t.original_keyword) DESC) AS match_rank
-    FROM dim_product_dedup_base b
-    INNER JOIN {{ ref('product_category_translation') }} t
-        ON NORMALIZE(b.base_name, NFC) LIKE CONCAT('%', NORMALIZE(t.original_keyword, NFC), '%')
-),
-
--- Collect result after pass 1
-after_pass1 AS (
-    SELECT
-        b.product_id,
-        COALESCE(t1.translated_name, NORMALIZE(b.base_name, NFC)) AS name_after_pass1
-    FROM dim_product_dedup_base b
-    LEFT JOIN translated_names_1 t1 ON b.product_id = t1.product_id AND t1.match_rank = 1
-),
-
--- Pass 2: Apply another round of translation to handle residual non-ASCII
-translated_names_2 AS (
-    SELECT
-        a.product_id,
-        REPLACE(
-            a.name_after_pass1,
-            NORMALIZE(t.original_keyword, NFC),
-            t.english_translation
-        ) AS translated_name,
-        ROW_NUMBER() OVER (PARTITION BY a.product_id ORDER BY LENGTH(t.original_keyword) DESC) AS match_rank
-    FROM after_pass1 a
-    INNER JOIN {{ ref('product_category_translation') }} t
-        ON a.name_after_pass1 LIKE CONCAT('%', NORMALIZE(t.original_keyword, NFC), '%')
-),
-
-dim_product_final AS (
-    SELECT
-        b.product_id,
-        COALESCE(t2.translated_name, ap1.name_after_pass1) AS raw_product_name,
+            t.keywords,
+            t.translations
+        ) AS raw_product_name,
         b.sku,
         b.attribute_set_id,
         b.type_id,
@@ -117,8 +94,7 @@ dim_product_final AS (
         b.store_code,
         b.gender
     FROM dim_product_dedup_base b
-    LEFT JOIN after_pass1 ap1 ON b.product_id = ap1.product_id
-    LEFT JOIN translated_names_2 t2 ON b.product_id = t2.product_id AND t2.match_rank = 1
+    CROSS JOIN translation_arrays t
 )
 
 SELECT
@@ -152,4 +128,4 @@ SELECT
     category_id,
     store_code,
     gender
-FROM dim_product_final
+FROM dim_product_translated

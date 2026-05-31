@@ -13,7 +13,7 @@ IP2LOCATION_DIR = os.path.join(
 )
 IP2LOCATION_BATCH_SIZE = int(os.getenv("IP2LOCATION_BATCH_SIZE", 100_000))
 IP2LOCATION_DB = os.getenv("IP2LOCATION_DB_FILE", "./IP2LOCATION-LITE-DB11.BIN")
-UNIQUE_IP_FILE = os.path.join(IP2LOCATION_DIR, "_unique_ips.txt")
+UNIQUE_IP_FILE = os.path.join(IP2LOCATION_DIR, "unique_ips.txt")
 
 # Pid Filter
 PID_FILTER_DIR = os.path.join(DATA_DIR, os.getenv("PID_FILTER_DIR_NAME", "pid_filter"))
@@ -39,7 +39,6 @@ SUCCESS_DIR = os.path.join(PRODUCT_INFO_DIR, "success")
 ERROR_DIR = os.path.join(PRODUCT_INFO_DIR, "error")
 
 # Checkpoint
-
 CHECKPOINT_DIR = "checkpoint"
 
 # Export to GCS

@@ -32,6 +32,7 @@ def run_load_ip2location():
     if isinstance(last_processed_file, dict):
         last_processed_file = last_processed_file.get("last_file")
 
+    # Get the ip2location schema
     schema = get_ip2location_pyarrow_schema()
 
     for i, file_path in enumerate(json_files, 1):
@@ -45,14 +46,16 @@ def run_load_ip2location():
         logger.info(f"Processing file {i}/{len(json_files)}: {filename}")
 
         try:
+            # Load json data from file
             with open(file_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
 
             if not data:
                 continue
-
+            # Change .json file to parquet file for gcs upsert
             parquet_name = filename.replace(".json", ".parquet")
 
+            # Upsert data (parquet) with schema to gcs
             write_batch_to_gcs(
                 batch=data,
                 collection_name="ip2location",

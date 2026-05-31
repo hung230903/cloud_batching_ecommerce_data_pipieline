@@ -1,13 +1,13 @@
 import bson
 
 from config.base import (
+    GCS_BUCKET_NAME,
     GCS_SUMMARY_FOLDER,
     MONGO_BATCH_SIZE,
-    GCS_BUCKET_NAME,
     SUMMARY_BSON_PATH,
 )
-from processing.normalizer.summary_normalizer import normalize_summary_data
 from config.logger import setup_logger
+from processing.normalizer.summary_normalizer import normalize_summary_data
 from schema.schemas import get_summary_pyarrow_schema
 from utils.checkpoint_utils import get_checkpoint_manager
 from utils.gcs_upload_utils import write_batch_to_gcs
@@ -27,11 +27,7 @@ def export_bson_to_gcs(
     schema=None,
     batch_size=MONGO_BATCH_SIZE,
 ):
-    """
-    Đọc dữ liệu từ file BSON nội bộ theo batch,
-    chuyển đổi sang Parquet và upload lên GCS.
-    Hỗ trợ resume từ checkpoint sử dụng ObjectId.
-    """
+
     checkpoint_manager = get_checkpoint_manager(f"data_to_gcs_{collection_name}")
     checkpoint_data = checkpoint_manager.get_checkpoint()
 

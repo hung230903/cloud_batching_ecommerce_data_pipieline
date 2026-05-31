@@ -15,7 +15,12 @@ WITH english_stone_names AS (
     WHERE sku IS NOT NULL
     QUALIFY ROW_NUMBER() OVER (
         PARTITION BY sku
-        ORDER BY CASE WHEN store_code IN ('glus', 'glgb', 'glau', 'glca') THEN 0 ELSE 1 END, store_code
+        ORDER BY 
+        CASE WHEN store_code IN ('glus', 'glgb', 'glau', 'glca') 
+          THEN 0 
+          ELSE 1 
+        END, 
+        store_code
     ) = 1
 ),
 
@@ -46,7 +51,10 @@ dim_stone_source AS (
         ROW_NUMBER() OVER (
             PARTITION BY option_type_id
             ORDER BY
-                CASE WHEN store_code IN ('glus', 'glgb', 'glau', 'glca') THEN 0 ELSE 1 END,
+                CASE WHEN store_code IN ('glus', 'glgb', 'glau', 'glca') 
+                  THEN 0 
+                  ELSE 1 
+                END,
                 store_code,
                 product_id
         ) AS rn

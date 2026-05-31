@@ -1,6 +1,6 @@
 import os
 import time
-from concurrent.futures import ProcessPoolExecutor
+from concurrent.futures import ThreadPoolExecutor
 from itertools import islice
 
 from config.base import (
@@ -23,7 +23,15 @@ logger = setup_logger(
 
 
 def _ip_generator(filepath, skip_count=0):
-    # Checkpoint helper
+    """
+    Use `islice` and `yield` for memory-efficient streaming.
+
+    - `islice` lazily skips lines without loading the entire file into memory.
+    - Avoids large RAM usage caused by `readlines()[skip_count:]`.
+    - `yield` returns one IP at a time during iteration.
+    - Designed for scalable checkpoint-based processing of large files.
+    """
+
     # Yield IPs from text file, skipping the first `skip_count` IPs
     with open(filepath, "r", encoding="utf-8") as f:
         # islice func help to skip 'skip_count' IPs very fast
@@ -56,8 +64,8 @@ def _process_ips(checkpoint_manager, batch_size, workers):
     # Get IPs stream from text file
     ip_stream = _ip_generator(UNIQUE_IP_FILE, skip_count=checkpoint)
 
-    # Initialize multiprocessing
-    with ProcessPoolExecutor(max_workers=workers) as executor:
+    # Initialize ThreadPoolExecutor to avoid Airflow daemonic process restriction
+    with ThreadPoolExecutor(max_workers=workers) as executor:
         json_data = []
         ip_cnt = 0
 
@@ -94,7 +102,7 @@ def _process_ips(checkpoint_manager, batch_size, workers):
     return ip_cnt
 
 
-def run_ip_to_location(workers=10):
+def run_ip_enrichment(workers=10):
     """
     Execute the IP-to-location transformation pipeline.
     """
@@ -137,4 +145,4 @@ def run_ip_to_location(workers=10):
 
 
 if __name__ == "__main__":
-    run_ip_to_location()
+    run_ip_enrichment()

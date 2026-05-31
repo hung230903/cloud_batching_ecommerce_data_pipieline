@@ -25,8 +25,6 @@ def run_ip_unique_filter():
     try:
         db = client[MONGO_DB]
         summary_col = db[SUMMARY_COLLECTION]
-        # output_col = db[IP_COLLECTION]
-        # output_col.create_index("ip", unique=True)
 
         os.makedirs(IP2LOCATION_DIR, exist_ok=True)
 
@@ -50,7 +48,7 @@ def run_ip_unique_filter():
                     f.write(f"{ip}\n")
                     ip_count += 1
 
-        logger.info(f" Extracted {ip_count} unique IPs to {UNIQUE_IP_FILE}")
+        logger.info(f"Extracted {ip_count} unique IPs to {UNIQUE_IP_FILE}")
         return ip_count
     finally:
         client.close()

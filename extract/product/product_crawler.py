@@ -37,27 +37,8 @@ logger = setup_logger(
 )
 
 
-# def save_failed_data(status, pid_info, logger, is_exception=False):
-#     ERROR_DIR = os.path.join(PRODUCT_INFO_DIR, "error")
-#     if isinstance(pid_info, dict):
-#         pid = pid_info.get("pid")
-#     else:
-#         pid = pid_info
-
-#     os.makedirs(ERROR_DIR, exist_ok=True)
-
-#     # Save error pid to text file
-#     with open(f"{ERROR_DIR}/{status}.txt", "a") as f:
-#         f.write(f"{pid}\n")
-
-#     if is_exception:
-#         logger.error(f"FAILED | EXCEPTION | {status} | ID: {pid}")
-#     else:
-#         logger.error(f"FAILED | {status} | ID: {pid}")
-
-
 def get_product_list_from_filter():
-    pattern = os.path.join(PRODUCT_URLS_FILTER_DIR, "product_url_batch_*.json")
+    pattern = os.path.join(PRODUCT_URLS_FILTER_DIR, "url_batch_*.json")
     files = sorted(glob.glob(pattern))
 
     products = []
@@ -207,7 +188,6 @@ async def _crawl_products_async(batch_size):
 
     start_index = 0
     file_idx = 1
-    success_filename = f"product_info_{file_idx}.json"
 
     # Set up checkpoint
     if isinstance(checkpoint_data, dict):
@@ -218,6 +198,8 @@ async def _crawl_products_async(batch_size):
             start_index = int(checkpoint_data)
         except (ValueError, TypeError):
             start_index = 0
+
+    success_filename = f"info_{file_idx}.json"
 
     os.makedirs(PRODUCT_INFO_DIR, exist_ok=True)
     logger.info(
@@ -261,18 +243,6 @@ async def _crawl_products_async(batch_size):
                 if status == "success":
                     success_products.append(result)
                     success_cnt += 1
-                    # If the list reaches batch_size -> Write to JSON and clear the list for the next batch
-                    if len(success_products) >= batch_size:
-                        save_json_batch(
-                            success_products,
-                            SUCCESS_DIR,
-                            success_filename,
-                            logger,
-                            message="SUCCESS | SAVED BATCH",
-                            clean_data=True,
-                        )
-                        success_products.clear()
-                        file_idx += 1
 
                 # Categorize result: HTTP ERROR (e.g. 404, 500...)
                 elif isinstance(status, int):
@@ -294,6 +264,20 @@ async def _crawl_products_async(batch_size):
                     f"Success: {success_cnt} | Fail/Err: {error_cnt + exception_cnt}"
                 )
 
+            # End of batch: Save pending successful products BEFORE checkpointing to avoid data loss
+            if success_products:
+                save_json_batch(
+                    success_products,
+                    SUCCESS_DIR,
+                    success_filename,
+                    logger,
+                    message="SUCCESS | SAVED BATCH",
+                    clean_data=True,
+                )
+                success_products.clear()
+                file_idx += 1
+                success_filename = f"info_{file_idx}.json"
+
             # Save checkpoint
             checkpoint_manager.save_checkpoint(
                 {
@@ -301,22 +285,6 @@ async def _crawl_products_async(batch_size):
                     "file_idx": file_idx,
                 }
             )
-
-    if success_products:
-        save_json_batch(
-            success_products,
-            SUCCESS_DIR,
-            success_filename,
-            logger,
-            message="SUCCESS | SAVED BATCH",
-            clean_data=True,
-        )
-        checkpoint_manager.save_checkpoint(
-            {
-                "start_index": min(i + batch_size, total_products),
-                "file_idx": file_idx,
-            }
-        )
 
     total_time = time.perf_counter() - start_time
     total_failed_products = error_cnt + exception_cnt

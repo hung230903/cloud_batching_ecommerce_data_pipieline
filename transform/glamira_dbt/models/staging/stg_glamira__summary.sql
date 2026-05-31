@@ -15,7 +15,6 @@ renamed AS (
         CAST(user_id_db AS STRING) AS customer_id,
         CAST(device_id AS STRING) AS device_id,
         collection,
-        -- time_stamp is Unix epoch seconds stored as string (e.g. "1590508488")
         -- SAFE_CAST to TIMESTAMP fails; must convert via TIMESTAMP_SECONDS
         local_time,
         ip AS ip_address,
@@ -29,9 +28,8 @@ renamed AS (
         currency,
         CAST(is_paypal AS BOOL) AS is_paypal,
         cart_products,
-
-        -- Nested fields passed through for downstream models
         option,
+        -- time_stamp is Unix epoch seconds stored as string (e.g. "1590508488") -> convert to real time date/month/year...
         TIMESTAMP_SECONDS(CAST(time_stamp AS INT64)) AS event_timestamp
     FROM source
     WHERE time_stamp IS NOT NULL
