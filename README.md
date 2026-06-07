@@ -209,7 +209,7 @@ The transformation layer builds a robust Star Schema within BigQuery:
 
 ### 🗄️ Schema Design
 
-<img src="images/glamira-dw-design (1).png" alt="Glamira Data Warehouse Schema Design"/>
+<img src="images/glamira-dw-design.png" alt="Glamira Data Warehouse Schema Design"/>
 
 ---
 
