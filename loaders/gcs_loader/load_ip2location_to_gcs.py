@@ -4,7 +4,6 @@ import os
 
 from config.base import GCS_BUCKET_NAME, GCS_IP2LOCATION_FOLDER, IP2LOCATION_DIR
 from config.logger import setup_logger
-from processing.normalizer.ip2location_normalizer import normalize_ip2location_data
 from schema.schemas import get_ip2location_pyarrow_schema
 from utils.checkpoint_utils import get_checkpoint_manager
 from utils.gcs_upload_utils import write_batch_to_gcs
@@ -61,7 +60,7 @@ def run_load_ip2location():
                 collection_name="ip2location",
                 gcs_folder=GCS_IP2LOCATION_FOLDER,
                 part_idx=parquet_name,
-                transform_func=normalize_ip2location_data,
+                transform_func=None,
                 schema=schema,
                 bucket_name=GCS_BUCKET_NAME,
             )
