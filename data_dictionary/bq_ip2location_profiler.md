@@ -1,15 +1,14 @@
 # Data Dictionary: BigQuery: ip2location
 
-Generated at: 2026-04-22 16:14:28
+Generated at: 2026-06-27 18:21:41
 
 | Field Path | Types | Instances | Nulls | Uniques | Sample Data | Description |
 | --- | --- | --- | --- | --- | --- | --- |
-| city | str | 1000 | 0 (0.0%) | 164 | Sarreguemines, Tarbes, Plonevez-du-Faou | City name |
-| country | str | 1000 | 0 (0.0%) | 1 | France | Full name of the country |
-| ip | str | 1000 | 0 (0.0%) | 1000 | 176.161.229.33, 176.161.229.38, 176.161.229.39 | IP address of the user |
-| latitude | float | 1000 | 0 (0.0%) | 160 | 49.109951, 43.233231, 48.25 | Latitude coordinate of the IP location |
-| longitude | float | 1000 | 0 (0.0%) | 163 | 7.06747, 0.083332, -3.83333 | Longitude coordinate of the IP location |
-| region | str | 1000 | 0 (0.0%) | 9 | Grand-Est, Occitanie, Bretagne | State, province, or region name |
+| city | str | 1000 | 0 (0.0%) | 78 | Mexico City, Cuajimalpa, Ciudad Nezahualcoyotl | City name |
+| country | str | 1000 | 0 (0.0%) | 2 | Mexico, Brazil | Full name of the country |
+| country_short | str | 1000 | 0 (0.0%) | 2 | MX, BR | Two-letter ISO country code (e.g., US, VN) |
+| ip | str | 1000 | 0 (0.0%) | 1000 | 189.236.110.171, 189.236.110.28, 189.236.111.242 | IP address of the user |
+| region | str | 1000 | 0 (0.0%) | 16 | Ciudad de Mexico, Mexico, Chihuahua | State, province, or region name |
 
 ---
-*Ghi chú: Bảng này được tạo tự động dựa trên mẫu dữ liệu hiện tại.*
+*Note: This table is automatically generated based on the current data sample.*

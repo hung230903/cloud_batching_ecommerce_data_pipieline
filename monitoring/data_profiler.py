@@ -1,6 +1,11 @@
 import glob
 import json
 import os
+import sys
+
+# Add project root to PYTHONPATH so we can import 'config' module
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 import random
 from datetime import datetime
 
@@ -9,14 +14,23 @@ from google.cloud import bigquery
 from pymongo import MongoClient
 
 from config.base import (
-    MONGO_URI, MONGO_DB, SUMMARY_COLLECTION, IP_COLLECTION,
-    BQ_PROJECT_ID, BQ_DATASET_ID, BQ_TABLE_SUMMARY, BQ_TABLE_IP2LOCATION,
-    PRODUCT_INFO_DIR, BQ_TABLE_PRODUCT_INFO
+    MONGO_URI,
+    MONGO_DB,
+    SUMMARY_COLLECTION,
+    IP_COLLECTION,
+    BQ_PROJECT_ID,
+    BQ_DATASET_ID,
+    BQ_TABLE_SUMMARY,
+    BQ_TABLE_IP2LOCATION,
+    PRODUCT_INFO_DIR,
+    BQ_TABLE_PRODUCT_INFO,
 )
 from config.logger import setup_logger
 
 # Create data_dictionary directory if it does not exist
-DICTIONARY_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data_dictionary")
+DICTIONARY_DIR = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data_dictionary"
+)
 os.makedirs(DICTIONARY_DIR, exist_ok=True)
 
 # Data Field Descriptions Dictionary (English)
@@ -66,7 +80,6 @@ FIELD_DESCRIPTIONS = {
     "option": "User-selected product option in interaction events",
     "cart_products": "Array of products currently in the user's cart",
     "product_id_value": "Product ID value extracted for analytics",
-
     # Generic & Option Metadata Fields (Common in nested structures)
     "option_id": "Unique identifier for the product option configuration",
     "option_type_id": "Unique identifier for the specific value choice within an option",
@@ -77,10 +90,8 @@ FIELD_DESCRIPTIONS = {
     "is_require": "Boolean flag indicating if the option is mandatory for the product",
     "sort_order": "The numeric sequence for displaying options in the UI",
     "sku_image": "The image file suffix used for dynamic URL building based on SKU",
-
     # Summary Specific Fields
     "time_stamp": "Unix epoch timestamp of the event",
-
     "ip": "IP address of the user",
     "user_agent": "Browser and OS information of the user",
     "resolution": "Screen resolution of the device (Width x Height)",
@@ -105,7 +116,6 @@ FIELD_DESCRIPTIONS = {
     "recommendation_product_id": "ID of the product recommended to the user",
     "recommendation_product_position": "Index of the product in the recommendation list",
     "recommendation_clicked_position": "Position in the UI where the recommendation was clicked",
-
     # Nested Option Fields (Summary.option)
     "option.option_label": "Human-readable label for the product option (e.g., Metal, Size)",
     "option.option_id": "Technical identifier for the option type",
@@ -119,14 +129,11 @@ FIELD_DESCRIPTIONS = {
     "option.stone": "Type of gemstone selected",
     "option.pearlcolor": "Color of the pearl selected",
     "option.finish": "Surface finish type (e.g., Polished, Matte)",
-
     # IP2Location Fields
+    "country_short": "Two-letter ISO country code (e.g., US, VN)",
     "country": "Full name of the country",
     "region": "State, province, or region name",
     "city": "City name",
-    "latitude": "Latitude coordinate of the IP location",
-    "longitude": "Longitude coordinate of the IP location",
-
 }
 
 
@@ -135,15 +142,18 @@ def _get_description(path):
     p_lower = path.lower()
 
     # 1. Correct color/colour discrepancy
-    normalized_path = path.replace("color.", "colour.").replace(".colour", ".colour_code")
-    if p_lower == "color": normalized_path = "colour"
+    normalized_path = path.replace("color.", "colour.").replace(
+        ".colour", ".colour_code"
+    )
+    if p_lower == "color":
+        normalized_path = "colour"
 
     # 2. Check direct map
     if normalized_path in FIELD_DESCRIPTIONS:
         return FIELD_DESCRIPTIONS[normalized_path]
 
     # 3. Fuzzy matching for components
-    parts = normalized_path.split('.')
+    parts = normalized_path.split(".")
     leaf = parts[-1]
 
     # Rule based descriptions for common suffixes
@@ -202,12 +212,13 @@ def _generate_deep_profile(data, source_name, custom_file_name=None):
         return
 
     from collections import defaultdict
+
     # stats: store values (for counting), types (for type identification), samples (for examples)
     field_stats = defaultdict(lambda: {"values": [], "types": set(), "samples": []})
 
     def walk(obj, prefix, is_list_item=False):
         # Automatically decode JSON strings
-        if isinstance(obj, str) and obj.strip().startswith(('{', '[')):
+        if isinstance(obj, str) and obj.strip().startswith(("{", "[")):
             try:
                 parsed = json.loads(obj)
                 walk(parsed, prefix, is_list_item)
@@ -218,8 +229,12 @@ def _generate_deep_profile(data, source_name, custom_file_name=None):
         if prefix and not is_list_item:
             field_stats[prefix]["types"].add(type(obj).__name__)
             if isinstance(obj, (dict, list)):
-                val_to_record = True if obj is not None and (
-                        not isinstance(obj, (dict, list)) or len(obj) > 0) else None
+                val_to_record = (
+                    True
+                    if obj is not None
+                    and (not isinstance(obj, (dict, list)) or len(obj) > 0)
+                    else None
+                )
                 field_stats[prefix]["values"].append(val_to_record)
             else:
                 field_stats[prefix]["values"].append(obj)
@@ -245,7 +260,11 @@ def _generate_deep_profile(data, source_name, custom_file_name=None):
     profile_summary = []
     for path, stats in field_stats.items():
         vals = stats["values"]
-        non_null = [v for v in vals if v is not None and not (isinstance(v, float) and pd.isna(v))]
+        non_null = [
+            v
+            for v in vals
+            if v is not None and not (isinstance(v, float) and pd.isna(v))
+        ]
         null_count = len(vals) - len(non_null)
 
         try:
@@ -255,23 +274,26 @@ def _generate_deep_profile(data, source_name, custom_file_name=None):
 
         # Format sample string
         samples_str = ", ".join([str(s) for s in stats["samples"]])
-        if not samples_str: samples_str = "N/A"
+        if not samples_str:
+            samples_str = "N/A"
 
-        profile_summary.append({
-            "Field Path": path,
-            "Types": ", ".join(sorted(stats["types"])),
-            "Instances": len(vals),
-            "Nulls": f"{null_count} ({(null_count / len(vals)) * 100 if vals else 0:.1f}%)",
-            "Uniques": distinct_count,
-            "Sample Data": samples_str,
-            "Description": _get_description(path)
-        })
+        profile_summary.append(
+            {
+                "Field Path": path,
+                "Types": ", ".join(sorted(stats["types"])),
+                "Instances": len(vals),
+                "Nulls": f"{null_count} ({(null_count / len(vals)) * 100 if vals else 0:.1f}%)",
+                "Uniques": distinct_count,
+                "Sample Data": samples_str,
+                "Description": _get_description(path),
+            }
+        )
 
     profile_df = pd.DataFrame(profile_summary).sort_values("Field Path")
 
     # Display to console
     print(f"\n[{source_name} Deep Profiling Report]")
-    with pd.option_context('display.max_rows', 10, 'display.max_columns', None):
+    with pd.option_context("display.max_rows", 10, "display.max_columns", None):
         print(profile_df.to_string(index=False))
 
     # Write to Markdown file
@@ -292,7 +314,9 @@ def _generate_deep_profile(data, source_name, custom_file_name=None):
         f.write(f"# Data Dictionary: {source_name}\n\n")
         f.write(f"Generated at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
         f.write(_df_to_markdown(profile_df))
-        f.write("\n\n---\n*Note: This table is automatically generated based on the current data sample.*")
+        f.write(
+            "\n\n---\n*Note: This table is automatically generated based on the current data sample.*"
+        )
 
     logger.info(f"Saved Data Dictionary to: {file_path}")
 
@@ -301,7 +325,9 @@ def profile_mongodb_collection(mongo_uri, db_name, collection_name, sample_size=
     """
     Profile a MongoDB collection with deep inspection.
     """
-    logger.info(f"--- Profiling MongoDB Collection: {collection_name} (Sample: {sample_size}) ---")
+    logger.info(
+        f"--- Profiling MongoDB Collection: {collection_name} (Sample: {sample_size}) ---"
+    )
 
     client = MongoClient(mongo_uri)
     db = client[db_name]
@@ -315,7 +341,9 @@ def profile_mongodb_collection(mongo_uri, db_name, collection_name, sample_size=
     indices = list(collection.list_indexes())
     print(f"\n[MongoDB: {collection_name} Constraints/Indices]")
     for idx in indices:
-        print(f" - Index: {idx['name']} | Fields: {idx['key']} | Unique: {idx.get('unique', False)}")
+        print(
+            f" - Index: {idx['name']} | Fields: {idx['key']} | Unique: {idx.get('unique', False)}"
+        )
 
     # Get sample data as list of dicts
     cursor = collection.find().limit(sample_size)
@@ -323,7 +351,8 @@ def profile_mongodb_collection(mongo_uri, db_name, collection_name, sample_size=
 
     # Exclude _id from profiling
     for d in data:
-        if '_id' in d: del d['_id']
+        if "_id" in d:
+            del d["_id"]
 
     _generate_deep_profile(data, f"MongoDB: {collection_name}")
 
@@ -342,15 +371,19 @@ def profile_local_product_info(product_info_dir):
         return
 
     selected_file = random.choice(json_files)
-    logger.info(f"--- Profiling Local File: {os.path.basename(selected_file)} (Entire File) ---")
+    logger.info(
+        f"--- Profiling Local File: {os.path.basename(selected_file)} (Entire File) ---"
+    )
 
     try:
-        with open(selected_file, 'r', encoding='utf-8') as f:
+        with open(selected_file, "r", encoding="utf-8") as f:
             data = json.load(f)
             if not isinstance(data, list):
                 data = [data]
 
-            _generate_deep_profile(data, f"Local File: {os.path.basename(selected_file)}")
+            _generate_deep_profile(
+                data, f"Local File: {os.path.basename(selected_file)}"
+            )
     except Exception as e:
         logger.error(f"Error reading file {selected_file}: {e}")
 
@@ -360,7 +393,9 @@ def profile_bigquery_table(client, dataset_id, table_id, sample_size=1000):
     Profile a BigQuery table with deep inspection (including RECORD/STRUCT/ARRAY).
     """
     table_ref = f"{BQ_PROJECT_ID}.{dataset_id}.{table_id}"
-    logger.info(f"--- Profiling BigQuery Table: {table_ref} (Sample: {sample_size}) ---")
+    logger.info(
+        f"--- Profiling BigQuery Table: {table_ref} (Sample: {sample_size}) ---"
+    )
 
     # 1. Get sample data (BigQuery auto-flattens Row objects slightly but we can cast to dict)
     query_sample = f"SELECT * FROM `{table_ref}` LIMIT {sample_size}"

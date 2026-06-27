@@ -187,7 +187,7 @@ The project includes a high-performance **Streamlit** dashboard for real-time da
 To run the dashboard:
 
 ```bash
-streamlit run dashboard.py
+uv run python -m streamlit run dashboard.py
 ```
 
 ---
@@ -248,7 +248,7 @@ uv sync
 
 ```bash
 # Run the core data pipeline (Extract & Sync to GCS)
-python main.py
+uv run main.py
 
 # Run dbt snapshots (Capture historical changes)
 cd transform/glamira_dbt
