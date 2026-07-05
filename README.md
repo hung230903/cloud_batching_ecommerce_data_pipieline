@@ -16,7 +16,7 @@ process, and analyze data from the Glamira e-commerce platform. The project impl
 - [Data Modeling](#-data-modeling-dbt)
 - [Configuration](#-configuration)
 - [Getting Started](#-getting-started)
-- [Deployment (Cloud Functions)](#-deployment-cloud-functions)
+- [Deployment (Cloud Functions)](#deployment-cloud-functions)
 - [Monitoring](#-monitoring)
 
 ---
@@ -283,7 +283,7 @@ uv run --env-file ../../.env dbt test
 
 ---
 
-## ☁️ Deployment (Cloud Functions)
+## <a name="deployment-cloud-functions"></a>☁️ Deployment (Cloud Functions)
 
 To deploy the automated BigQuery loader, remember to assign your values in **--set-env-vars**:
 
