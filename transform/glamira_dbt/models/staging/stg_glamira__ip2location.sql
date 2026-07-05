@@ -4,6 +4,7 @@
 WITH source AS (
     SELECT *
     FROM {{ source('glamira_raw', 'ip2location') }}
+    -- Get only 1 ip 
     QUALIFY ROW_NUMBER() OVER (PARTITION BY ip) = 1
 ),
 

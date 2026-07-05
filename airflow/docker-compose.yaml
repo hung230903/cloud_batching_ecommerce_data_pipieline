@@ -1,0 +1,203 @@
+# Airflow Batch Pipeline - Docker Compose
+# LocalExecutor setup for the cloud batching ecommerce data pipeline.
+#
+# Usage:
+#   1. Copy .env.example to .env and set AIRFLOW_UID (run `id -u`)
+#   2. Build: docker compose build
+#   3. Init:  docker compose up airflow-init
+#   4. Start: docker compose up -d
+#   5. UI:    http://localhost:8080 (airflow/airflow)
+---
+x-airflow-common: &airflow-common
+  build: .
+  image: ${AIRFLOW_IMAGE_NAME:-glamira/airflow-batch:2.10.4}
+  user: "${AIRFLOW_UID:-50000}:0"
+  environment: &airflow-common-env
+    AIRFLOW__CORE__EXECUTOR: LocalExecutor
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@airflow-postgres/airflow
+    AIRFLOW__CORE__FERNET_KEY: ""
+    AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "true"
+    AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+    AIRFLOW__SCHEDULER__ENABLE_HEALTH_CHECK: "true"
+    AIRFLOW__LOGGING__WORKER_LOG_SERVER_HOST: "airflow-scheduler"
+    AIRFLOW__LOGGING__WORKER_LOG_SERVER_PORT: "8793"
+    AIRFLOW__CORE__HOSTNAME_CALLABLE: "airflow.utils.net.getfqdn"
+
+    # Project PYTHONPATH: allow importing project modules (config, extract, loaders, etc.)
+    PYTHONPATH: "/opt/airflow/project:/opt/airflow"
+
+    # Forward the project .env variables into the container
+    # MongoDB
+    MONGODB_URI: ${MONGODB_URI:-mongodb://host.docker.internal:27017/}
+    MONGODB_DB_NAME: ${MONGODB_DB_NAME:-glamira-gcloud-raw}
+    MONGODB_RAW_DATA_COL: ${MONGODB_RAW_DATA_COL:-summary}
+    MONGODB_IP2LOCATION_COL: ${MONGODB_IP2LOCATION_COL:-ip2location}
+    MONGODB_PRODUCT_EVENTS: '${MONGODB_PRODUCT_EVENTS:-["view_product_detail", "select_product_option", "select_product_option_quality", "add_to_cart_action", "product_detail_recommendation_visible", "product_detail_recommendation_noticed", "product_view_all_recommend_clicked"]}'
+
+    # Paths (relative to /opt/airflow/project inside container)
+    DATA_DIR: "/opt/airflow/project/data"
+    CHECKPOINT_DIR: "/opt/airflow/project/checkpoint"
+
+    # IP2Location
+    IP2LOCATION_DIR_NAME: ${IP2LOCATION_DIR_NAME:-ip2location}
+    IP2LOCATION_BATCH_SIZE: ${IP2LOCATION_BATCH_SIZE:-100000}
+    IP2LOCATION_DB_FILE: "/opt/airflow/project/IP2LOCATION-LITE-DB11.BIN"
+
+    # PID Filter
+    PID_FILTER_DIR_NAME: ${PID_FILTER_DIR_NAME:-pid_filter}
+    PID_FILTER_BATCH_SIZE: ${PID_FILTER_BATCH_SIZE:-500}
+    MONGO_BATCH_SIZE: ${MONGO_BATCH_SIZE:-500000}
+
+    # Crawler
+    PRODUCT_CRAWLER_DIR_NAME: ${PRODUCT_CRAWLER_DIR_NAME:-product_info}
+    PRODUCT_DOMAINS_DIR_NAME: ${PRODUCT_DOMAINS_DIR_NAME:-domains_filter}
+    PRODUCT_CRAWLER_BATCH_SIZE: ${PRODUCT_CRAWLER_BATCH_SIZE:-500}
+    PRODUCT_CRAWLER_SEMAPHORE: ${PRODUCT_CRAWLER_SEMAPHORE:-10}
+    DOMAIN_MAX_REQUEST: ${DOMAIN_MAX_REQUEST:-2}
+    PRODUCT_CRAWLER_TIMEOUT: ${PRODUCT_CRAWLER_TIMEOUT:-15}
+    PRODUCT_CRAWLER_MAX_RETRIES: ${PRODUCT_CRAWLER_MAX_RETRIES:-3}
+    PRODUCT_CRAWLER_HEADERS: "${PRODUCT_CRAWLER_HEADERS:-{}}"
+    PRODUCT_CRAWLER_UA: ${PRODUCT_CRAWLER_UA:-glamira-crawler/1.0}
+
+    # GCS
+    SUCCESS_DIR: "/opt/airflow/project/data/product_info/success"
+    GCS_BUCKET_NAME: ${GCS_BUCKET_NAME:-glamira-raw-bucket}
+    GCS_DESTINATION_FOLDER: ${GCS_DESTINATION_FOLDER:-product_info}
+    GCS_IP2LOCATION_FOLDER: ${GCS_IP2LOCATION_FOLDER:-ip2location}
+    GCS_SUMMARY_FOLDER: ${GCS_SUMMARY_FOLDER:-summary_data}
+    SUMMARY_BSON_PATH: "/opt/airflow/project/data/glamira-data/summary.bson"
+
+    # BigQuery
+    BQ_PROJECT_ID: ${BQ_PROJECT_ID:-concise-voice-486808-m9}
+    BQ_DATASET_ID: ${BQ_DATASET_ID:-glamira_raw_layer}
+    BQ_TABLE_SUMMARY: ${BQ_TABLE_SUMMARY:-summary}
+    BQ_TABLE_IP2LOCATION: ${BQ_TABLE_IP2LOCATION:-ip2location}
+    BQ_TABLE_PRODUCT_INFO: ${BQ_TABLE_PRODUCT_INFO:-product_info}
+
+    _PIP_ADDITIONAL_REQUIREMENTS: ${_PIP_ADDITIONAL_REQUIREMENTS:-}
+
+  volumes:
+    - ./dags:/opt/airflow/dags
+    - ./logs:/opt/airflow/logs
+    - ./config:/opt/airflow/config
+    - ./plugins:/opt/airflow/plugins
+    # Mount the entire project into the container for Python imports
+    - ${PROJECT_ROOT:-.}/:/opt/airflow/project
+    # GCP credentials (Application Default Credentials)
+    - ${HOME}/.config/gcloud:/home/airflow/.config/gcloud:ro
+  extra_hosts:
+    - "host.docker.internal:host-gateway"
+  depends_on: &airflow-common-depends-on
+    airflow-postgres:
+      condition: service_healthy
+
+services:
+  airflow-postgres:
+    image: postgres:13
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+    volumes:
+      - postgres-db-volume:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "airflow"]
+      interval: 10s
+      retries: 5
+      start_period: 5s
+    restart: always
+
+  airflow-webserver:
+    <<: *airflow-common
+    hostname: airflow-webserver
+    command: webserver
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    restart: always
+    depends_on:
+      <<: *airflow-common-depends-on
+      airflow-init:
+        condition: service_completed_successfully
+
+  airflow-scheduler:
+    <<: *airflow-common
+    hostname: airflow-scheduler
+    command: scheduler
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8974/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    restart: always
+    depends_on:
+      <<: *airflow-common-depends-on
+      airflow-init:
+        condition: service_completed_successfully
+
+  airflow-triggerer:
+    <<: *airflow-common
+    hostname: airflow-triggerer
+    command: triggerer
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          'airflow jobs check --job-type TriggererJob --hostname "$${HOSTNAME}"',
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    restart: always
+    depends_on:
+      <<: *airflow-common-depends-on
+      airflow-init:
+        condition: service_completed_successfully
+
+  airflow-init:
+    <<: *airflow-common
+    entrypoint: /bin/bash
+    command:
+      - -c
+      - |
+        if [[ -z "$${AIRFLOW_UID}" ]]; then
+          echo
+          echo -e "\033[1;33mWARNING: AIRFLOW_UID not set!\e[0m"
+          echo "Run 'id -u' on your host to get the UID and set it in .env"
+          echo
+        fi
+        mkdir -p /sources/logs /sources/dags /sources/plugins
+        chown -R "$${AIRFLOW_UID}:0" /sources/{logs,dags,plugins}
+        exec /entrypoint airflow version
+    environment:
+      <<: *airflow-common-env
+      _AIRFLOW_DB_MIGRATE: "true"
+      _AIRFLOW_WWW_USER_CREATE: "true"
+      _AIRFLOW_WWW_USER_USERNAME: ${_AIRFLOW_WWW_USER_USERNAME:-airflow}
+      _AIRFLOW_WWW_USER_PASSWORD: ${_AIRFLOW_WWW_USER_PASSWORD:-airflow}
+      _PIP_ADDITIONAL_REQUIREMENTS: ""
+    user: "0:0"
+    volumes:
+      - ${AIRFLOW_PROJ_DIR:-.}:/sources
+
+  airflow-cli:
+    <<: *airflow-common
+    profiles:
+      - debug
+    environment:
+      <<: *airflow-common-env
+      CONNECTION_CHECK_MAX_COUNT: "0"
+    command:
+      - bash
+      - -c
+      - airflow
+
+volumes:
+  postgres-db-volume:

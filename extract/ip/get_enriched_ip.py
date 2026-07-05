@@ -70,7 +70,7 @@ def _process_ips(checkpoint_manager, batch_size, workers):
         ip_cnt = 0
 
         # Interate IPs from ip_stream to lookup_ip func
-        for result in executor.map(lookup_ip, ip_stream, chunksize=1000):
+        for result in executor.map(lookup_ip, ip_stream, chunksize=10000):
             filename = f"ip_enriched_batch_{file_idx}.json"
             json_data.append(result)
             ip_cnt += 1

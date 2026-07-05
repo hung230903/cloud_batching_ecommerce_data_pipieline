@@ -58,7 +58,7 @@ for seamless data ingestion.
 | Category                  | Technology                           |
 | :------------------------ | :----------------------------------- |
 | **Language**              | Python 3.13+                         |
-| **Data Orchestration**    | Custom Python Runner (`main.py`)     |
+| **Data Orchestration**    | Apache Airflow, Custom Python Runner |
 | **Automation**            | Google Cloud Functions (Python 3.11) |
 | **Storage (Raw/Staging)** | MongoDB, Google Cloud Storage (GCS)  |
 | **Data Warehouse**        | Google BigQuery                      |
@@ -139,6 +139,12 @@ for seamless data ingestion.
 ---
 
 ## ✨ Features
+
+### 🌬️ Workflow Orchestration (Airflow)
+
+- **Containerized Orchestration**: The entire batch pipeline (Extract, Load, Transform) is scheduled and monitored via **Apache Airflow** using the `LocalExecutor`.
+- **Telegram Alert System**: A custom monitoring DAG (`alert_system_dag.py`) continuously scans for task/DAG failures and dispatches immediate alerting notifications to a Telegram Bot.
+- **Automated Housekeeping**: Scheduled maintenance DAGs (`housekeeping_dag.py`) automatically clean up Airflow logs, project execution logs, and raw JSON data older than 30 days to optimize disk usage.
 
 ### ⚡ Optimized Performance
 
@@ -246,8 +252,21 @@ uv sync
 
 ### Execution
 
+#### Option 1: Using Apache Airflow (Recommended)
+
 ```bash
-# Run the core data pipeline (Extract & Sync to GCS)
+# Initialize and start Airflow in Docker
+cd airflow
+docker compose up -d
+
+# Access Airflow UI at http://localhost:8080 (airflow/airflow)
+# Unpause `batch_extract_pipeline`, `batch_load_pipeline`, `alert_system`, etc.
+```
+
+#### Option 2: Manual Execution
+
+```bash
+# Run the core data pipeline manually (Extract & Sync to GCS)
 uv run main.py
 
 # Run dbt snapshots (Capture historical changes)

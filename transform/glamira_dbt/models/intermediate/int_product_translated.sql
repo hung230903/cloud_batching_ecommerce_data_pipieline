@@ -18,7 +18,11 @@ WITH english_product_names AS (
     WHERE sku IS NOT NULL
     QUALIFY ROW_NUMBER() OVER (
         PARTITION BY sku
-        ORDER BY CASE WHEN store_code IN ('glus', 'glgb', 'glau', 'glca') THEN 0 ELSE 1 END, store_code
+        ORDER BY 
+          CASE WHEN store_code IN ('glus', 'glgb', 'glau', 'glca') 
+            THEN 0 
+          ELSE 1 
+          END, store_code
     ) = 1
 ),
 
@@ -39,7 +43,10 @@ dim_product_source AS (
         ROW_NUMBER() OVER (
             PARTITION BY product_id
             ORDER BY
-                CASE WHEN store_code IN ('glus', 'glgb', 'glau', 'glca') THEN 0 ELSE 1 END,
+                CASE WHEN store_code IN ('glus', 'glgb', 'glau', 'glca') 
+                  THEN 0 
+                ELSE 1 
+                END,
                 store_code,
                 sku
         ) AS rn
@@ -62,7 +69,8 @@ dim_product_dedup_base AS (
         s.store_code,
         s.gender
     FROM dim_product_source s
-    LEFT JOIN english_product_names e ON s.sku = e.sku
+    LEFT JOIN english_product_names e 
+      ON s.sku = e.sku
     WHERE s.rn = 1
 ),
 
@@ -70,8 +78,10 @@ dim_product_dedup_base AS (
 translation_arrays AS (
     SELECT
         -- Sort(DESC) all the records by original_keyword
-        ARRAY_AGG(NORMALIZE(original_keyword, NFC) ORDER BY LENGTH(original_keyword) DESC) AS keywords,
-        ARRAY_AGG(english_translation ORDER BY LENGTH(original_keyword) DESC) AS translations
+        ARRAY_AGG(NORMALIZE(original_keyword, NFC) 
+            ORDER BY LENGTH(original_keyword) DESC) AS keywords,
+        ARRAY_AGG(english_translation 
+            ORDER BY LENGTH(original_keyword) DESC) AS translations
     FROM {{ ref('product_category_translation') }}
 ),
 

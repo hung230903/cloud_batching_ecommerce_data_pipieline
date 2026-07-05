@@ -70,5 +70,7 @@ SELECT
     COALESCE(e.english_name, b.original_name, 'Unknown') AS colour_name,
     COALESCE(el.english_label, b.original_label) AS colour_label
 FROM dim_colour_base b
-LEFT JOIN english_colour_names e ON b.colour_code = e.colour_code
-LEFT JOIN english_colour_labels el ON b.colour_code = el.colour_code
+LEFT JOIN english_colour_names e 
+  ON b.colour_code = e.colour_code
+LEFT JOIN english_colour_labels el 
+  ON b.colour_code = el.colour_code

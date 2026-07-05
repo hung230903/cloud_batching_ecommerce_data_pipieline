@@ -14,7 +14,9 @@ WITH checkout AS (
     FROM {{ ref('stg_glamira__summary') }}
     WHERE collection = 'checkout_success'
       AND order_id IS NOT NULL
-    QUALIFY ROW_NUMBER() OVER (PARTITION BY order_id ORDER BY event_timestamp DESC) = 1
+    QUALIFY ROW_NUMBER() OVER (
+      PARTITION BY order_id 
+      ORDER BY event_timestamp DESC) = 1
 ),
 
 -- Unnest cart_products to get one row per product line per order
@@ -47,11 +49,16 @@ priced AS (
             -- European format: comma is the decimal separator (e.g., "1.101,00" or "1 234,56")
             -- → strip everything except digits, commas, and dots → remove dots (thousands) → swap comma to dot
             WHEN REGEXP_CONTAINS(raw_price, r',') THEN
-                CAST(NULLIF(REPLACE(REPLACE(REGEXP_REPLACE(raw_price, r'[^0-9,.]', ''), '.', ''), ',', '.'), '') AS FLOAT64)
+                CAST(NULLIF
+                      (REPLACE
+                        (REPLACE
+                          (REGEXP_REPLACE(raw_price, r'[^0-9,.]', ''), '.', ''), ',', '.'), '') 
+                            AS FLOAT64)
             -- Swiss / standard format: dot is the decimal separator (e.g., "1'756.00" or "1756.00")
             -- → strip everything except digits and dots
             ELSE
-                CAST(NULLIF(REGEXP_REPLACE(raw_price, r'[^0-9.]', ''), '') AS FLOAT64)
+                CAST(NULLIF(REGEXP_REPLACE(raw_price, r'[^0-9.]', ''), '') 
+                  AS FLOAT64)
         END AS sale_price
     FROM cart_lines
 ),
@@ -72,23 +79,32 @@ options_unnested AS (
 stone_options AS (
     SELECT o.order_id, o.line_item_id, o.product_id, o.value_id AS stone_id
     FROM options_unnested o
-    JOIN {{ ref('int_stone_options') }} s ON o.value_id = s.option_type_id
-    QUALIFY ROW_NUMBER() OVER (PARTITION BY o.order_id, o.line_item_id ORDER BY o.value_id) = 1
+    JOIN {{ ref('int_stone_options') }} s 
+      ON o.value_id = s.option_type_id
+    QUALIFY ROW_NUMBER() OVER (
+      PARTITION BY o.order_id, o.line_item_id 
+      ORDER BY o.value_id) = 1
 ),
 
 colour_options AS (
     SELECT o.order_id, o.line_item_id, o.product_id, o.value_id AS colour_id
     FROM options_unnested o
-    JOIN {{ ref('int_colour_options') }} c ON o.value_id = c.option_type_id
-    QUALIFY ROW_NUMBER() OVER (PARTITION BY o.order_id, o.line_item_id ORDER BY o.value_id) = 1
+    JOIN {{ ref('int_colour_options') }} c 
+      ON o.value_id = c.option_type_id
+    QUALIFY ROW_NUMBER() OVER (
+      PARTITION BY o.order_id, o.line_item_id 
+      ORDER BY o.value_id) = 1
 ),
 
 metal_options AS (
     SELECT o.order_id, o.line_item_id, o.product_id, c.metal_id AS metal_id
     FROM options_unnested o
-    JOIN {{ ref('int_colour_options') }} c ON o.value_id = c.option_type_id
+    JOIN {{ ref('int_colour_options') }} c 
+      ON o.value_id = c.option_type_id
     WHERE c.metal_id IS NOT NULL
-    QUALIFY ROW_NUMBER() OVER (PARTITION BY o.order_id, o.line_item_id ORDER BY o.value_id) = 1
+    QUALIFY ROW_NUMBER() OVER (
+      PARTITION BY o.order_id, o.line_item_id 
+      ORDER BY o.value_id) = 1
 ),
 
 enriched AS (

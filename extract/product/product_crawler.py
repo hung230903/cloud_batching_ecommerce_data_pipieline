@@ -38,7 +38,7 @@ logger = setup_logger(
 
 
 def get_product_list_from_filter():
-    pattern = os.path.join(PRODUCT_URLS_FILTER_DIR, "url_batch_*.json")
+    pattern = os.path.join(PRODUCT_URLS_FILTER_DIR, "product_url_batch_*.json")
     files = sorted(glob.glob(pattern))
 
     products = []
