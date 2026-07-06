@@ -4,8 +4,8 @@
     config(
       target_schema='glamira_snapshots',
       unique_key='customer_id',
-      strategy='timestamp',
-      updated_at='event_timestamp',
+      strategy='check',
+      check_cols=['email_address'],
     )
 }}
 
